@@ -1,0 +1,206 @@
+# Rogue Robots — Implementation TODO
+
+> **Instructions for Claude Code:**
+> - This file is the source of truth for implementation progress.
+> - After completing any task, update its checkbox from `[ ]` to `[x]` and add a brief inline note if relevant.
+> - Complete sprints in order. Each sprint assumes the previous is fully working.
+> - For significant architectural or tooling choices not already covered, append a row to `DECISIONS.md`.
+> - Full design reference: `Rogue_Robots_GDD.md`
+
+---
+
+## Tech Stack
+
+| Layer | Choice |
+|-------|--------|
+| Engine | Phaser 3 |
+| Pathfinding | EasyStar.js |
+| Language | JavaScript (ES6+) |
+| Build Tool | Vite |
+| Unit Data | `src/data/units.json` |
+
+---
+
+## Sprint 0 — Project Foundation
+
+Goal: A clean, well-structured repository that all future sprints build on. No gameplay yet.
+
+### Scaffolding
+- [ ] Initialize Vite project (`npm create vite@latest`)
+- [ ] Install Phaser 3 (`npm install phaser`)
+- [ ] Install EasyStar.js (`npm install easystarjs`)
+- [ ] Confirm dev server runs (`npm run dev`) with a blank Phaser canvas
+
+### Directory Structure
+Create the following folder structure before writing any game code:
+
+```
+rogue-robots/
+├── public/
+│   └── assets/
+│       ├── sprites/        # Placeholder for future sprite sheets
+│       └── audio/          # Placeholder for future audio
+├── src/
+│   ├── data/
+│   │   └── units.json      # Single source of truth for all unit stats
+│   ├── scenes/
+│   │   ├── BootScene.js    # Asset preloading
+│   │   ├── DraftScene.js   # Pre-round loadout UI
+│   │   └── GameScene.js    # Main gameplay
+│   ├── entities/
+│   │   ├── Unit.js         # Base class for all moving units
+│   │   ├── Tower.js        # Base class for static defenses
+│   │   └── ResourceToken.js
+│   ├── systems/
+│   │   ├── PathfindingSystem.js
+│   │   ├── CombatSystem.js
+│   │   ├── SpawnSystem.js
+│   │   └── EconomySystem.js
+│   ├── ui/
+│   │   ├── HUD.js
+│   │   └── LoadoutBar.js
+│   ├── map/
+│   │   ├── MapGenerator.js
+│   │   └── archetypes/
+│   │       ├── Serpent.js
+│   │       ├── Fork.js
+│   │       └── Grid.js
+│   └── main.js             # Entry point and Phaser config
+├── index.html
+├── vite.config.js
+├── package.json
+├── TODO.md
+├── DECISIONS.md
+└── Rogue_Robots_GDD.md
+```
+
+- [ ] Create all directories and stub files (empty exports are fine — just establish the structure)
+
+### Data
+- [ ] Populate `src/data/units.json` with all 9 MVP units and their full stats from GDD Section 8:
+  - Fields per unit: `name`, `isRobot`, `cost` (metal/silicon/batteries), `spawn` (Base/Drop), `hp`, `dmg`, `range`, `armor`, `moveSpeed`, `atkSpeed`, `specialBehavior`, `unlockLevel`
+
+### Entry Point
+- [ ] Configure `main.js` with Phaser game config: scene list (Boot → Draft → Game), canvas size, pixel-art scale mode
+- [ ] `BootScene.js`: stub that transitions immediately to `DraftScene` (no assets to load yet)
+- [ ] `DraftScene.js`: stub that shows placeholder text "Draft Screen" and transitions to `GameScene` on click/tap
+- [ ] `GameScene.js`: stub that shows placeholder text "Game Screen" — confirms scene routing works end-to-end
+
+---
+
+## Sprint 1 — Grid & Map Rendering
+
+Goal: A visible, correctly structured 12x16 game board. No units yet.
+
+- [ ] Implement grid constants: 12 columns × 16 rows, configurable tile size
+- [ ] Implement a hardcoded **Serpent** map layout in `Serpent.js` (single winding path for early testing)
+- [ ] Render the grid in `GameScene`: walkable path tiles and wall tiles visually distinct (colored rectangles — no sprites needed)
+- [ ] Render the territorial divide line between Row 8 (NPC) and Row 9 (Player)
+- [ ] Mark and visually distinguish the NPC base (top-left, tile 0,0) and Player base (bottom-right, tile 11,15)
+- [ ] Confirm grid scales correctly on both desktop and a simulated mobile viewport
+
+---
+
+## Sprint 2 — Grunt Spawning & Pathfinding
+
+Goal: Grunts march from both bases toward the opposing base along the path.
+
+- [ ] Initialize EasyStar.js grid in `PathfindingSystem.js` using the map data from Sprint 1
+- [ ] Implement A* path calculation: given start and end tile, return ordered list of tiles
+- [ ] Implement `Unit.js` base class with position, stats (from `units.json`), and step-along-path movement
+- [ ] `SpawnSystem.js`: spawn Player Grunt every **4 seconds** from tile (11,15)
+- [ ] `SpawnSystem.js`: spawn NPC Grunt every **3 seconds** from tile (0,0)
+- [ ] Grunts march along their calculated path, one tile at a time, toward the opposing base
+- [ ] Equidistant tie-breaking: random branch selection when multiple paths have equal distance (GDD Section 10)
+- [ ] Grunts idle when they reach the opposing base (combat placeholder)
+
+---
+
+## Sprint 3 — Combat System
+
+Goal: Units fight, die, and deal damage to bases.
+
+- [ ] `CombatSystem.js`: detect when two opposing units are within attack range of each other
+- [ ] Targeting: each unit locks onto the **closest attackable enemy** within its range (GDD Section 12)
+- [ ] Attack loop: damage = attacker Dmg − target Armor (minimum 1 damage per hit), applied at attacker's Atk Speed interval
+- [ ] Unit death: remove unit from scene when HP reaches 0
+- [ ] **Metal economy:** award 1 Metal to the team whose unit lands the killing blow (`EconomySystem.js`)
+- [ ] Base damage: units that reach the opposing base deal 1 damage per second to it
+- [ ] Track and display both base HP values in the HUD (`HUD.js`)
+- [ ] Win/loss detection: end round when either base HP reaches 0
+
+---
+
+## Sprint 4 — Player Economy & Special Unit Deployment
+
+Goal: Player can spend resources to deploy Special Robots and Towers mid-round.
+
+- [ ] `EconomySystem.js`: track Metal, Batteries, and Silicon separately for the player
+- [ ] `HUD.js`: display current resource counts
+- [ ] `ResourceToken.js`: spawn Battery and Silicon tokens at random walkable tiles during the round
+- [ ] Token collection: tokens picked up when any friendly unit walks over them
+- [ ] `LoadoutBar.js`: render up to 8 loadout slots at bottom of screen
+- [ ] Hardcode a default 8-unit loadout for Sprint 4 testing
+- [ ] Two-step tap-to-place deployment (GDD Section 11):
+  - Tap loadout slot → unit equipped (highlighted)
+  - Tap valid tile → unit placed, resources deducted
+  - Robots → walkable tiles only; Towers → wall tiles only
+  - Player-side only (Rows 9–16); reject invalid placements silently or with brief feedback
+- [ ] Enforce **1-second Universal Deployment Cooldown** between any placements
+- [ ] Enforce resource cost check; prevent and indicate deployment if insufficient resources
+- [ ] Implement **Scavenger** special behavior: paths to nearest resource token; self-destructs on pickup
+
+---
+
+## Sprint 5 — Full Round Loop
+
+Goal: A complete playable round from draft to win/loss.
+
+- [ ] `DraftScene.js`: player selects up to 8 units from their unlocked pool (Lvl 1 units only for now)
+- [ ] Display predetermined starting resource pool during draft phase
+- [ ] Transition from draft to game board on confirmation
+- [ ] Display round timer on HUD
+- [ ] `SpawnSystem.js`: implement **Escalation Timer** (GDD Section 13):
+  - At 5:00 — NPC spawn rate → 1 Grunt per **2 seconds**
+  - At 10:00 — NPC spawn rate → 1 Grunt per **1 second**
+- [ ] Win screen on NPC base destruction
+- [ ] Loss screen on Player base destruction
+- [ ] "Play Again" flow: returns to draft screen and resets all round state
+- [ ] `MapGenerator.js`: randomly select one of three archetypes per round
+- [ ] Implement **Fork** archetype in `Fork.js` (multi-lane path)
+- [ ] Implement **Grid** archetype in `Grid.js` (open webbed layout)
+- [ ] Validate pathfinding works correctly on all three archetypes
+
+---
+
+## Sprint 6 — All MVP Units & Special Behaviors
+
+Goal: All 9 units fully implemented with correct stats and behaviors.
+
+- [ ] **Grunt** — confirm stats and behavior match GDD (baseline from Sprints 2–3)
+- [ ] **Punchbot** — standard melee; confirm cost and stats
+- [ ] **Zapbot** — ranged (Range 3); confirm cost and stats
+- [ ] **Scavenger** — resource-seeker, Drop spawn, self-destructs on pickup *(started Sprint 4)*
+- [ ] **Boombot** — AoE on first attack, self-destructs, fast; confirm cost and stats
+- [ ] **Tankbot** — high HP, Armor 1, slow; confirm cost and stats
+- [ ] **Floatbot** — ignores path, moves in straight line; only targetable by Range > 1 units
+- [ ] **Boomtrap** — stationary Drop unit, triggers on enemy proximity, AoE self-destruct
+- [ ] **Zap Tower** — wall-placed, Range 3, medium attack speed
+- [ ] Verify all unit costs match `src/data/units.json`
+- [ ] Verify Spawn type rules enforced for all units (Base vs. Drop)
+- [ ] Verify unlock gating: Lvl 1 available by default; Lvl 2 and Lvl 3 locked in draft
+
+---
+
+## Backlog (Post-MVP)
+
+Out of scope for MVP. Tracked here for future planning.
+
+- [ ] Meta-progression: XP system, player level, persistent unlocks
+- [ ] Full run structure: 15-round sequence with distinct NPC AI profiles and personas
+- [ ] Sprite art: pixel art sprite sheets (walking, attacking, dying animations) for all units
+- [ ] Audio: 8-bit chiptune music and sound effects
+- [ ] Mobile polish: touch target sizing, on-device testing (iOS/Android)
+- [ ] Additional map archetypes beyond the three MVP templates
+- [ ] Full draft UI with 20–30 unit unlock pool
+- [ ] NPC AI with unique loadouts and learnable traits
