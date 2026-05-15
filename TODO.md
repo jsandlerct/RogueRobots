@@ -26,10 +26,10 @@
 Goal: A clean, well-structured repository that all future sprints build on. No gameplay yet.
 
 ### Scaffolding
-- [ ] Initialize Vite project (`npm create vite@latest`)
-- [ ] Install Phaser 3 (`npm install phaser`)
-- [ ] Install EasyStar.js (`npm install easystarjs`)
-- [ ] Confirm dev server runs (`npm run dev`) with a blank Phaser canvas
+- [x] Initialize Vite project (`npm create vite@latest`)
+- [x] Install Phaser 3 (`npm install phaser`) — installed as phaser@^4.1.0
+- [x] Install EasyStar.js (`npm install easystarjs`)
+- [x] Confirm dev server runs (`npm run dev`) with a blank Phaser canvas — confirmed on localhost:5173
 
 ### Directory Structure
 Create the following folder structure before writing any game code:
@@ -74,17 +74,17 @@ rogue-robots/
 └── Rogue_Robots_GDD.md
 ```
 
-- [ ] Create all directories and stub files (empty exports are fine — just establish the structure)
+- [x] Create all directories and stub files (empty exports are fine — just establish the structure)
 
 ### Data
-- [ ] Populate `src/data/units.json` with all 9 MVP units and their full stats from GDD Section 8:
+- [x] Populate `src/data/units.json` with all 9 MVP units and their full stats from GDD Section 8:
   - Fields per unit: `name`, `isRobot`, `cost` (metal/silicon/batteries), `spawn` (Base/Drop), `hp`, `dmg`, `range`, `armor`, `moveSpeed`, `atkSpeed`, `specialBehavior`, `unlockLevel`
 
 ### Entry Point
-- [ ] Configure `main.js` with Phaser game config: scene list (Boot → Draft → Game), canvas size, pixel-art scale mode
-- [ ] `BootScene.js`: stub that transitions immediately to `DraftScene` (no assets to load yet)
-- [ ] `DraftScene.js`: stub that shows placeholder text "Draft Screen" and transitions to `GameScene` on click/tap
-- [ ] `GameScene.js`: stub that shows placeholder text "Game Screen" — confirms scene routing works end-to-end
+- [x] Configure `main.js` with Phaser game config: scene list (Boot → Draft → Game), canvas size, pixel-art scale mode
+- [x] `BootScene.js`: stub that transitions immediately to `DraftScene` (no assets to load yet)
+- [x] `DraftScene.js`: stub that shows placeholder text "Draft Screen" and transitions to `GameScene` on click/tap
+- [x] `GameScene.js`: stub that shows placeholder text "Game Screen" — confirms scene routing works end-to-end
 
 ---
 
@@ -92,12 +92,12 @@ rogue-robots/
 
 Goal: A visible, correctly structured 12x16 game board. No units yet.
 
-- [ ] Implement grid constants: 12 columns × 16 rows, configurable tile size
-- [ ] Implement a hardcoded **Serpent** map layout in `Serpent.js` (single winding path for early testing)
-- [ ] Render the grid in `GameScene`: walkable path tiles and wall tiles visually distinct (colored rectangles — no sprites needed)
-- [ ] Render the territorial divide line between Row 8 (NPC) and Row 9 (Player)
-- [ ] Mark and visually distinguish the NPC base (top-left, tile 0,0) and Player base (bottom-right, tile 11,15)
-- [ ] Confirm grid scales correctly on both desktop and a simulated mobile viewport
+- [x] Implement grid constants: 12 columns × 16 rows, configurable tile size — exported from `Serpent.js` (COLS, ROWS, TILE_SIZE=40)
+- [x] Implement a hardcoded **Serpent** map layout in `Serpent.js` (single winding path for early testing)
+- [x] Render the grid in `GameScene`: walkable path tiles and wall tiles visually distinct (colored rectangles — no sprites needed)
+- [x] Render the territorial divide line between Row 8 (NPC) and Row 9 (Player) — yellow line at y=320
+- [x] Mark and visually distinguish the NPC base (top-left, tile 0,0) and Player base (bottom-right, tile 11,15) — red/blue with text labels
+- [x] Confirm grid scales correctly on both desktop and a simulated mobile viewport — Phaser Scale.FIT + CENTER_BOTH handles this
 
 ---
 
@@ -105,14 +105,14 @@ Goal: A visible, correctly structured 12x16 game board. No units yet.
 
 Goal: Grunts march from both bases toward the opposing base along the path.
 
-- [ ] Initialize EasyStar.js grid in `PathfindingSystem.js` using the map data from Sprint 1
-- [ ] Implement A* path calculation: given start and end tile, return ordered list of tiles
-- [ ] Implement `Unit.js` base class with position, stats (from `units.json`), and step-along-path movement
-- [ ] `SpawnSystem.js`: spawn Player Grunt every **4 seconds** from tile (11,15)
-- [ ] `SpawnSystem.js`: spawn NPC Grunt every **3 seconds** from tile (0,0)
-- [ ] Grunts march along their calculated path, one tile at a time, toward the opposing base
-- [ ] Equidistant tie-breaking: random branch selection when multiple paths have equal distance (GDD Section 10)
-- [ ] Grunts idle when they reach the opposing base (combat placeholder)
+- [x] Initialize EasyStar.js grid in `PathfindingSystem.js` using the map data from Sprint 1
+- [x] Implement A* path calculation: given start and end tile, return ordered list of tiles
+- [x] Implement `Unit.js` base class with position, stats (from `units.json`), and step-along-path movement
+- [x] `SpawnSystem.js`: spawn Player Grunt every **4 seconds** from tile (11,15)
+- [x] `SpawnSystem.js`: spawn NPC Grunt every **3 seconds** from tile (0,0)
+- [x] Grunts march along their calculated path, one tile at a time, toward the opposing base
+- [x] Equidistant tie-breaking: random branch selection when multiple paths have equal distance (GDD Section 10) — Serpent has exactly one path so EasyStar default is correct; random branching deferred to Sprint 5 (Fork/Grid maps), see DECISIONS.md
+- [x] Grunts idle when they reach the opposing base (combat placeholder) — movement tween chain simply stops at path end
 
 ---
 
@@ -120,14 +120,14 @@ Goal: Grunts march from both bases toward the opposing base along the path.
 
 Goal: Units fight, die, and deal damage to bases.
 
-- [ ] `CombatSystem.js`: detect when two opposing units are within attack range of each other
-- [ ] Targeting: each unit locks onto the **closest attackable enemy** within its range (GDD Section 12)
-- [ ] Attack loop: damage = attacker Dmg − target Armor (minimum 1 damage per hit), applied at attacker's Atk Speed interval
-- [ ] Unit death: remove unit from scene when HP reaches 0
-- [ ] **Metal economy:** award 1 Metal to the team whose unit lands the killing blow (`EconomySystem.js`)
-- [ ] Base damage: units that reach the opposing base deal 1 damage per second to it
-- [ ] Track and display both base HP values in the HUD (`HUD.js`)
-- [ ] Win/loss detection: end round when either base HP reaches 0
+- [x] `CombatSystem.js`: detect when two opposing units are within attack range of each other
+- [x] Targeting: each unit locks onto the **closest attackable enemy** within its range (GDD Section 12)
+- [x] Attack loop: damage = attacker Dmg − target Armor (minimum 1 damage per hit), applied at attacker's Atk Speed interval
+- [x] Unit death: remove unit from scene when HP reaches 0
+- [x] **Metal economy:** award 1 Metal to the team whose unit lands the killing blow (`EconomySystem.js`)
+- [x] Base damage: units that reach the opposing base deal 1 damage per second to it
+- [x] Track and display both base HP values in the HUD (`HUD.js`) — base HP set to 10 (not specified in GDD; reasonable default)
+- [x] Win/loss detection: end round when either base HP reaches 0
 
 ---
 
