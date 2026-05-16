@@ -1,5 +1,6 @@
 import {
-  LOADOUT_SLOT_W, LOADOUT_SLOT_H, LOADOUT_BAR_Y, LOADOUT_NUM_SLOTS, LOADOUT_COLOR_EMPTY,
+  LOADOUT_SLOT_W, LOADOUT_SLOT_H, LOADOUT_BAR_X, LOADOUT_BAR_Y,
+  LOADOUT_NUM_SLOTS, LOADOUT_COLOR_EMPTY,
   DEPTH_LOADOUT_SEL_FRAME, DEPTH_LOADOUT_BG, DEPTH_LOADOUT_TEXT,
   DEPTH_COOLDOWN_OVERLAY, DEPTH_COOLDOWN_TEXT,
 } from '../data/constants.js';
@@ -24,7 +25,7 @@ export default class LoadoutBar {
   _build() {
     for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
       const unitName = this._loadout[i] ?? null;
-      const cx = i * LOADOUT_SLOT_W + LOADOUT_SLOT_W / 2;
+      const cx = LOADOUT_BAR_X + i * LOADOUT_SLOT_W + LOADOUT_SLOT_W / 2;
       const cy = LOADOUT_BAR_Y + LOADOUT_SLOT_H / 2;
 
       const selFrame = this._scene.add.rectangle(cx, cy, LOADOUT_SLOT_W, LOADOUT_SLOT_H, 0xffffff)

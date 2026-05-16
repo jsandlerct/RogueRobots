@@ -1,5 +1,5 @@
 import {
-  TILE_SIZE, MOVE_MS, UNIT_SIZE,
+  TILE_SIZE, BOARD_OFFSET_X, BOARD_OFFSET_Y, MOVE_MS, UNIT_SIZE,
   NPC_UNIT_TINT, TEAM_BORDER_COLOR, TEAM_BORDER_PX,
   DEPTH_UNIT_SPRITE, DEPTH_UNIT_OUTLINE,
 } from '../data/constants.js';
@@ -19,8 +19,8 @@ export default class Unit {
     this.stats = unitsData.find(u => u.name === unitName);
     this.hp    = this.stats.hp;
 
-    const cx       = col * TILE_SIZE + TILE_SIZE / 2;
-    const cy       = row * TILE_SIZE + TILE_SIZE / 2;
+    const cx       = BOARD_OFFSET_X + col * TILE_SIZE + TILE_SIZE / 2;
+    const cy       = BOARD_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2;
     const atlasKey = UNIT_SPRITE_KEY[unitName];
 
     if (atlasKey && scene.textures.exists(atlasKey)) {
@@ -87,8 +87,8 @@ export default class Unit {
     this._inTween = true;
     this._tween   = this.scene.tweens.add({
       targets:  this.sprite,
-      x:        next.x * TILE_SIZE + TILE_SIZE / 2,
-      y:        next.y * TILE_SIZE + TILE_SIZE / 2,
+      x:        BOARD_OFFSET_X + next.x * TILE_SIZE + TILE_SIZE / 2,
+      y:        BOARD_OFFSET_Y + next.y * TILE_SIZE + TILE_SIZE / 2,
       duration,
       ease:     'Linear',
       onComplete: () => {

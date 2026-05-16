@@ -1,4 +1,4 @@
-import { TILE_SIZE, TOKEN_COLOR, TOKEN_SIZES, DEPTH_TOKEN } from '../data/constants.js';
+import { TILE_SIZE, BOARD_OFFSET_X, BOARD_OFFSET_Y, TOKEN_COLOR, TOKEN_SIZES, DEPTH_TOKEN } from '../data/constants.js';
 
 export default class ResourceToken {
   constructor(scene, col, row, type) {
@@ -10,8 +10,8 @@ export default class ResourceToken {
     const sizeEntry = TOKEN_SIZES[Math.floor(Math.random() * TOKEN_SIZES.length)];
     this.amount = sizeEntry.amount;
 
-    const x = col * TILE_SIZE + TILE_SIZE / 2;
-    const y = row * TILE_SIZE + TILE_SIZE / 2;
+    const x = BOARD_OFFSET_X + col * TILE_SIZE + TILE_SIZE / 2;
+    const y = BOARD_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2;
     this.sprite = scene.add.rectangle(x, y, sizeEntry.px, sizeEntry.px, TOKEN_COLOR[type])
       .setDepth(DEPTH_TOKEN);
   }

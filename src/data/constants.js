@@ -4,14 +4,18 @@
 // ── Grid ──────────────────────────────────────────────────────────────────────
 export const COLS      = 12;
 export const ROWS      = 16;
-export const TILE_SIZE = 40;
+export const TILE_SIZE = 36;
 export const TILE_PAD  = 1;    // gap rendered between tiles
-export const BOARD_W   = COLS * TILE_SIZE;   // 480
-export const BOARD_H   = ROWS * TILE_SIZE;   // 640
+export const BOARD_W   = COLS * TILE_SIZE;   // 432
+export const BOARD_H   = ROWS * TILE_SIZE;   // 576
 
-// ── Canvas ────────────────────────────────────────────────────────────────────
-export const CANVAS_W  = 480;
-export const CANVAS_H  = 700;    // BOARD_H (640) + loadout bar (60)
+// ── Canvas & layout ───────────────────────────────────────────────────────────
+export const NPC_LOADOUT_BAR_H = 52;         // top bar height for NPC unit display
+export const SIDE_PANEL_W      = 60;         // left & right panel width for base info
+export const BOARD_OFFSET_X    = SIDE_PANEL_W;         // 60
+export const BOARD_OFFSET_Y    = NPC_LOADOUT_BAR_H;    // 52
+export const CANVAS_W  = SIDE_PANEL_W * 2 + BOARD_W;  // 552
+export const CANVAS_H  = 688;   // NPC_LOADOUT_BAR_H(52) + BOARD_H(576) + loadout(60)
 export const CANVAS_BG = '#1a1a2e';
 
 // ── Tile values ───────────────────────────────────────────────────────────────
@@ -83,28 +87,35 @@ export const COLOR_NPC_BASE_TINT        = 0xff8888;
 export const COLOR_PLAYER_BASE_TINT     = 0x8888ff;
 
 // ── Render depths ─────────────────────────────────────────────────────────────
-export const DEPTH_BASE_SPRITE       = 2;
-export const DEPTH_UNIT_SPRITE       = 5;
-export const DEPTH_TOKEN             = 5;
-export const DEPTH_UNIT_OUTLINE      = 6;
-export const DEPTH_HUD               = 10;
-export const DEPTH_PROJECTILE        = 10;
-export const DEPTH_LOADOUT_SEL_FRAME = 14;
-export const DEPTH_LOADOUT_BG        = 15;
-export const DEPTH_LOADOUT_TEXT      = 16;
-export const DEPTH_COOLDOWN_OVERLAY  = 17;
-export const DEPTH_COOLDOWN_TEXT     = 18;
-export const DEPTH_ROUND_END_BG      = 20;
-export const DEPTH_ROUND_END_TEXT    = 21;
-export const DEPTH_ROUND_END_BTN     = 22;
-export const DEPTH_FEEDBACK          = 30;
+export const DEPTH_BASE_SPRITE        = 2;
+export const DEPTH_UNIT_SPRITE        = 5;
+export const DEPTH_TOKEN              = 5;
+export const DEPTH_UNIT_OUTLINE       = 6;
+export const DEPTH_HUD                = 10;
+export const DEPTH_PROJECTILE         = 10;
+export const DEPTH_NPC_LOADOUT_BG     = 13;
+export const DEPTH_NPC_LOADOUT_TEXT   = 14;
+export const DEPTH_LOADOUT_SEL_FRAME  = 14;
+export const DEPTH_LOADOUT_BG         = 15;
+export const DEPTH_LOADOUT_TEXT       = 16;
+export const DEPTH_COOLDOWN_OVERLAY   = 17;
+export const DEPTH_COOLDOWN_TEXT      = 18;
+export const DEPTH_ROUND_END_BG       = 20;
+export const DEPTH_ROUND_END_TEXT     = 21;
+export const DEPTH_ROUND_END_BTN      = 22;
+export const DEPTH_FEEDBACK           = 30;
 
-// ── Loadout bar ───────────────────────────────────────────────────────────────
-export const LOADOUT_SLOT_W      = 60;
+// ── Loadout bar (player — bottom) ─────────────────────────────────────────────
+export const LOADOUT_SLOT_W      = 54;   // 8 × 54 = 432 = BOARD_W
 export const LOADOUT_SLOT_H      = 60;
-export const LOADOUT_BAR_Y       = 640;   // top of bar; immediately below the game board
+export const LOADOUT_BAR_X       = BOARD_OFFSET_X;     // aligns with board left edge
+export const LOADOUT_BAR_Y       = NPC_LOADOUT_BAR_H + BOARD_H;   // 628
 export const LOADOUT_NUM_SLOTS   = 8;
 export const LOADOUT_COLOR_EMPTY = 0x2a2a4a;
+
+// ── NPC loadout bar (top) ─────────────────────────────────────────────────────
+export const NPC_SLOT_W = 54;
+export const NPC_SLOT_H = 44;
 
 // ── HUD ───────────────────────────────────────────────────────────────────────
 export const HUD_PAD = 4;

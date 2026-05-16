@@ -1,14 +1,17 @@
 import Phaser from 'phaser';
 import {
   COLS, ROWS, TILE_SIZE, TILE_PAD, TILE_WALKABLE,
-  BOARD_W, BOARD_H,
+  BOARD_W, BOARD_H, BOARD_OFFSET_X, BOARD_OFFSET_Y,
   NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW,
   DIVIDE_ROW, BASE_HP, BASE_SPRITE_SIZE,
+  NPC_UNIT_TINT, NPC_SLOT_W, NPC_SLOT_H, NPC_LOADOUT_BAR_H,
   COLOR_WALL, COLOR_PATH_NPC, COLOR_PATH_PLAYER,
   COLOR_DIVIDE, COLOR_DIVIDE_ALPHA, COLOR_DIVIDE_PX,
   COLOR_NPC_BASE_FALLBACK, COLOR_PLAYER_BASE_FALLBACK,
   COLOR_NPC_BASE_TINT, COLOR_PLAYER_BASE_TINT,
-  DEPTH_BASE_SPRITE, DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
+  DEPTH_BASE_SPRITE, DEPTH_HUD,
+  DEPTH_NPC_LOADOUT_BG, DEPTH_NPC_LOADOUT_TEXT,
+  DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
   ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
   TOKEN_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
 } from '../data/constants.js';
@@ -29,6 +32,9 @@ const DEFAULT_LOADOUT = [
   'Tankbot', 'Floatbot', 'Boomtrap', 'Zap Tower',
 ];
 
+// NPC auto-spawns only Grunts — displayed in the enemy loadout bar
+const NPC_ROSTER = ['Grunt'];
+
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
@@ -43,6 +49,7 @@ export default class GameScene extends Phaser.Scene {
     this._grid    = mapInstance.getGrid();
     const mapPaths = mapInstance.getPaths ? mapInstance.getPaths() : null;
 
+    this._renderNPCLoadoutBar();
     this._renderGrid(this._grid);
     this._renderDivideLine();
     this._renderBaseLabels();
@@ -87,7 +94,12 @@ export default class GameScene extends Phaser.Scene {
     this._spawnToken();
 
     this.input.on('pointerdown', (pointer) => {
-      if (pointer.y < BOARD_H) this._onBoardClick(pointer);
+      const inBoard =
+        pointer.x >= BOARD_OFFSET_X &&
+        pointer.x <  BOARD_OFFSET_X + BOARD_W &&
+        pointer.y >= BOARD_OFFSET_Y &&
+        pointer.y <  BOARD_OFFSET_Y + BOARD_H;
+      if (inBoard) this._onBoardClick(pointer);
     });
   }
 
@@ -170,8 +182,8 @@ export default class GameScene extends Phaser.Scene {
     const unitName  = this._loadoutBar.selectedUnit;
     if (!unitName) return;
 
-    const col = Math.floor(pointer.x / TILE_SIZE);
-    const row = Math.floor(pointer.y / TILE_SIZE);
+    const col = Math.floor((pointer.x - BOARD_OFFSET_X) / TILE_SIZE);
+    const row = Math.floor((pointer.y - BOARD_OFFSET_Y) / TILE_SIZE);
 
     if (row < DIVIDE_ROW || row > ROWS - 1) {
       this._showFeedback('Player side only!');
@@ -321,14 +333,16 @@ export default class GameScene extends Phaser.Scene {
     const msg   = winner === 'player' ? 'YOU WIN!' : 'YOU LOSE!';
     const color = winner === 'player' ? '#44ff44' : '#ff4444';
 
-    this.add.rectangle(BOARD_W / 2, BOARD_H / 2,
-      ROUND_END_PANEL_W, ROUND_END_PANEL_H, 0x000000, ROUND_END_PANEL_ALPHA)
+    const cx = BOARD_OFFSET_X + BOARD_W / 2;
+    const cy = BOARD_OFFSET_Y + BOARD_H / 2;
+
+    this.add.rectangle(cx, cy, ROUND_END_PANEL_W, ROUND_END_PANEL_H, 0x000000, ROUND_END_PANEL_ALPHA)
       .setDepth(DEPTH_ROUND_END_BG);
-    this.add.text(BOARD_W / 2, BOARD_H / 2 - 25, msg, {
+    this.add.text(cx, cy - 25, msg, {
       fontSize: '28px', color, fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_TEXT);
 
-    const btn = this.add.text(BOARD_W / 2, BOARD_H / 2 + 22, '[ PLAY AGAIN ]', {
+    const btn = this.add.text(cx, cy + 22, '[ PLAY AGAIN ]', {
       fontSize: '15px', color: '#ffffff', fontFamily: 'monospace',
       backgroundColor: '#1a2233', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_BTN).setInteractive({ useHandCursor: true });
@@ -339,7 +353,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Feedback ──────────────────────────────────────────────────────────────
 
   _showFeedback(msg) {
-    const text = this.add.text(BOARD_W / 2, BOARD_H / 2 - 40, msg, {
+    const text = this.add.text(BOARD_OFFSET_X + BOARD_W / 2, BOARD_OFFSET_Y + BOARD_H / 2 - 40, msg, {
       fontSize: '13px', color: '#ffcc00', fontFamily: 'monospace',
       backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
     }).setOrigin(0.5).setDepth(DEPTH_FEEDBACK);
@@ -347,6 +361,45 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // ── Rendering ─────────────────────────────────────────────────────────────
+
+  _renderNPCLoadoutBar() {
+    const gfx = this.add.graphics();
+    // Dark background behind the top bar (full canvas width)
+    gfx.fillStyle(0x0d0d1a, 1);
+    gfx.fillRect(0, 0, BOARD_OFFSET_X + BOARD_W + BOARD_OFFSET_X, NPC_LOADOUT_BAR_H);
+    // Subtle separator line at the bottom of the bar
+    gfx.lineStyle(1, 0x334455, 0.8);
+    gfx.lineBetween(BOARD_OFFSET_X, NPC_LOADOUT_BAR_H - 1, BOARD_OFFSET_X + BOARD_W, NPC_LOADOUT_BAR_H - 1);
+
+    // "ENEMY:" label
+    this.add.text(BOARD_OFFSET_X + 4, NPC_LOADOUT_BAR_H / 2, 'ENEMY:', {
+      fontSize: '9px', color: '#ff9999', fontFamily: 'monospace',
+    }).setOrigin(0, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+
+    // NPC unit slots — one per unit in the roster
+    const labelW = 52; // approx width of "ENEMY:" label + padding
+    NPC_ROSTER.forEach((unitName, i) => {
+      const stats     = unitsData.find(u => u.name === unitName);
+      const fillColor = parseInt(stats.color.slice(1), 16);
+      const cx = BOARD_OFFSET_X + labelW + i * (NPC_SLOT_W + 4) + NPC_SLOT_W / 2;
+      const cy = NPC_LOADOUT_BAR_H / 2;
+
+      // Slot background
+      this.add.rectangle(cx, cy, NPC_SLOT_W - 2, NPC_SLOT_H - 2, fillColor)
+        .setStrokeStyle(2, NPC_UNIT_TINT)
+        .setDepth(DEPTH_NPC_LOADOUT_BG);
+
+      // Unit name
+      this.add.text(cx, cy - 7, unitName, {
+        fontSize: '8px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+      }).setOrigin(0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+
+      // Stats line
+      this.add.text(cx, cy + 6, `HP:${stats.hp} D:${stats.dmg}`, {
+        fontSize: '7px', color: '#cccccc', fontFamily: 'monospace', align: 'center',
+      }).setOrigin(0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+    });
+  }
 
   _renderGrid(grid) {
     const gfx = this.add.graphics();
@@ -356,8 +409,11 @@ export default class GameScene extends Phaser.Scene {
         const isPlayerBase = col === PLAYER_BASE_COL && row === PLAYER_BASE_ROW;
         if (isNpcBase || isPlayerBase) {
           gfx.fillStyle(COLOR_PATH_NPC, 1);
-          gfx.fillRect(col * TILE_SIZE + TILE_PAD, row * TILE_SIZE + TILE_PAD,
-                       TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2);
+          gfx.fillRect(
+            BOARD_OFFSET_X + col * TILE_SIZE + TILE_PAD,
+            BOARD_OFFSET_Y + row * TILE_SIZE + TILE_PAD,
+            TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2,
+          );
           continue;
         }
         const isPath = grid[row][col] === TILE_WALKABLE;
@@ -365,8 +421,11 @@ export default class GameScene extends Phaser.Scene {
           ? (row < DIVIDE_ROW ? COLOR_PATH_NPC : COLOR_PATH_PLAYER)
           : COLOR_WALL;
         gfx.fillStyle(color, 1);
-        gfx.fillRect(col * TILE_SIZE + TILE_PAD, row * TILE_SIZE + TILE_PAD,
-                     TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2);
+        gfx.fillRect(
+          BOARD_OFFSET_X + col * TILE_SIZE + TILE_PAD,
+          BOARD_OFFSET_Y + row * TILE_SIZE + TILE_PAD,
+          TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2,
+        );
       }
     }
   }
@@ -374,15 +433,20 @@ export default class GameScene extends Phaser.Scene {
   _renderDivideLine() {
     const gfx = this.add.graphics();
     gfx.lineStyle(COLOR_DIVIDE_PX, COLOR_DIVIDE, COLOR_DIVIDE_ALPHA);
-    gfx.lineBetween(0, DIVIDE_ROW * TILE_SIZE, BOARD_W, DIVIDE_ROW * TILE_SIZE);
+    gfx.lineBetween(
+      BOARD_OFFSET_X,
+      BOARD_OFFSET_Y + DIVIDE_ROW * TILE_SIZE,
+      BOARD_OFFSET_X + BOARD_W,
+      BOARD_OFFSET_Y + DIVIDE_ROW * TILE_SIZE,
+    );
   }
 
   _renderBaseLabels() {
     const hasBaseSprite = this.textures.exists('base');
 
     const makeBase = (col, row, animKey, tint, fallbackColor) => {
-      const cx = col * TILE_SIZE + TILE_SIZE / 2;
-      const cy = row * TILE_SIZE + TILE_SIZE / 2;
+      const cx = BOARD_OFFSET_X + col * TILE_SIZE + TILE_SIZE / 2;
+      const cy = BOARD_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2;
       if (hasBaseSprite) {
         const spr = this.add.sprite(cx, cy, 'base', 'walk_0')
           .setDisplaySize(BASE_SPRITE_SIZE, BASE_SPRITE_SIZE)
