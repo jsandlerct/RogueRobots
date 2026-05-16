@@ -10,6 +10,11 @@ function parseColor(hex) {
   return parseInt(hex.slice(1), 16);
 }
 
+// Y offsets within each slot for the three resource rows
+const RES_Y1 = LOADOUT_BAR_Y + 33;
+const RES_Y2 = LOADOUT_BAR_Y + 43;
+const RES_Y3 = LOADOUT_BAR_Y + 53;
+
 export default class LoadoutBar {
   constructor(scene, loadout) {
     this._scene   = scene;
@@ -39,23 +44,37 @@ export default class LoadoutBar {
       const bg = this._scene.add.rectangle(cx, cy, LOADOUT_SLOT_W - 2, LOADOUT_SLOT_H - 2, fillColor)
         .setDepth(DEPTH_LOADOUT_BG);
 
-      let label     = null;
-      let costLabel = null;
+      let label        = null;
+      let metalText    = null;
+      let siliconText  = null;
+      let batteriesText = null;
+      let freeText     = null;
 
       if (unitName) {
-        const stats     = unitsData.find(u => u.name === unitName);
-        const shortName = unitName.replace(' ', '\n');
+        const stats = unitsData.find(u => u.name === unitName);
         const { metal: m, silicon: s, batteries: b } = stats.cost;
-        const costStr   = [m ? `M${m}` : '', s ? `Si${s}` : '', b ? `B${b}` : '']
-          .filter(Boolean).join(' ') || 'Free';
 
-        label = this._scene.add.text(cx, LOADOUT_BAR_Y + 18, shortName, {
-          fontSize: '8px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+        // Unit name — top of slot, word-wrap for long names
+        label = this._scene.add.text(cx, LOADOUT_BAR_Y + 5, unitName, {
+          fontSize: '10px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
+          wordWrap: { width: LOADOUT_SLOT_W - 4 },
+        }).setOrigin(0.5, 0).setDepth(DEPTH_LOADOUT_TEXT);
+
+        // Individual resource cost labels — stacked in bottom portion of slot
+        const resYs = [RES_Y1, RES_Y2, RES_Y3];
+        let resIdx  = 0;
+        const makeResText = (str) => this._scene.add.text(cx, resYs[resIdx++], str, {
+          fontSize: '9px', color: '#dddddd', fontFamily: 'monospace', align: 'center',
         }).setOrigin(0.5, 0.5).setDepth(DEPTH_LOADOUT_TEXT);
 
-        costLabel = this._scene.add.text(cx, LOADOUT_BAR_Y + 48, costStr, {
-          fontSize: '7px', color: '#dddddd', fontFamily: 'monospace', align: 'center',
-        }).setOrigin(0.5, 0.5).setDepth(DEPTH_LOADOUT_TEXT);
+        if (m) metalText     = makeResText(`M:${m}`);
+        if (s) siliconText   = makeResText(`Si:${s}`);
+        if (b) batteriesText = makeResText(`B:${b}`);
+        if (!m && !s && !b) {
+          freeText = this._scene.add.text(cx, RES_Y2, 'Free', {
+            fontSize: '9px', color: '#88cc88', fontFamily: 'monospace', align: 'center',
+          }).setOrigin(0.5, 0.5).setDepth(DEPTH_LOADOUT_TEXT);
+        }
 
         bg.setInteractive({ useHandCursor: true });
         bg.on('pointerdown', () => this._selectSlot(i));
@@ -68,7 +87,11 @@ export default class LoadoutBar {
         fontSize: '14px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(DEPTH_COOLDOWN_TEXT).setVisible(false);
 
-      this._slots.push({ bg, selFrame, label, costLabel, cooldownOverlay, cooldownText, unitName, index: i });
+      this._slots.push({
+        bg, selFrame, label,
+        metalText, siliconText, batteriesText, freeText,
+        cooldownOverlay, cooldownText, unitName, index: i,
+      });
     }
   }
 
@@ -118,16 +141,20 @@ export default class LoadoutBar {
   refreshAffordability(playerResources) {
     for (const slot of this._slots) {
       if (!slot.unitName) continue;
-      const stats  = unitsData.find(u => u.name === slot.unitName);
+      const stats = unitsData.find(u => u.name === slot.unitName);
       const { metal: m, silicon: s, batteries: b } = stats.cost;
-      const canAfford =
-        playerResources.metal     >= (m || 0) &&
-        playerResources.silicon   >= (s || 0) &&
-        playerResources.batteries >= (b || 0);
+
+      const metalOk    = playerResources.metal     >= (m || 0);
+      const siliconOk  = playerResources.silicon   >= (s || 0);
+      const batteriesOk = playerResources.batteries >= (b || 0);
+      const canAfford  = metalOk && siliconOk && batteriesOk;
 
       slot.bg.setAlpha(canAfford ? 1.0 : 0.4);
       slot.selFrame.setAlpha(canAfford ? 1.0 : 0.4);
-      if (slot.costLabel) slot.costLabel.setColor(canAfford ? '#dddddd' : '#777777');
+
+      if (slot.metalText)     slot.metalText.setColor(metalOk     ? '#dddddd' : '#ff4444');
+      if (slot.siliconText)   slot.siliconText.setColor(siliconOk   ? '#dddddd' : '#ff4444');
+      if (slot.batteriesText) slot.batteriesText.setColor(batteriesOk ? '#dddddd' : '#ff4444');
     }
   }
 }

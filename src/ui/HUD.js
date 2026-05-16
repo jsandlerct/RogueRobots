@@ -1,32 +1,37 @@
 import {
-  BOARD_W, BOARD_H, BOARD_OFFSET_X, BOARD_OFFSET_Y,
+  TILE_SIZE, BOARD_W, BOARD_H, BOARD_OFFSET_X, BOARD_OFFSET_Y,
+  SIDE_PANEL_W, NPC_BASE_ROW, PLAYER_BASE_ROW,
   HUD_PAD, DEPTH_HUD,
 } from '../data/constants.js';
 
-const HP_STYLE    = { fontSize: '13px', color: '#ffffff', fontFamily: 'monospace' };
 const TIMER_STYLE = { fontSize: '13px', color: '#ccccff', fontFamily: 'monospace' };
+
+// Vertical centre of a board tile row in canvas pixels
+const tileY = (row) => BOARD_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2;
+
+// Horizontal centre of each side panel
+const LEFT_PANEL_CX  = SIDE_PANEL_W / 2;
+const RIGHT_PANEL_CX = BOARD_OFFSET_X + BOARD_W + SIDE_PANEL_W / 2;
 
 export default class HUD {
   constructor(scene) {
-    // NPC HP — left side panel, near NPC base (top-left corner)
-    this._npcHpText = scene.add.text(4, BOARD_OFFSET_Y + 4, '', {
-      fontSize: '10px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
-      wordWrap: { width: 56 },
-    }).setDepth(DEPTH_HUD);
+    // NPC HP — left side panel, centred on NPC base tile row
+    this._npcHpText = scene.add.text(LEFT_PANEL_CX, tileY(NPC_BASE_ROW), '', {
+      fontSize: '11px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: SIDE_PANEL_W - 4 },
+    }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
-    // Player HP — bottom-left inside the board
-    this._playerHpText = scene.add.text(
-      BOARD_OFFSET_X + HUD_PAD,
-      BOARD_OFFSET_Y + BOARD_H - 20 - HUD_PAD,
-      '', HP_STYLE,
-    ).setDepth(DEPTH_HUD);
+    // Player HP — right side panel, centred on player base tile row
+    this._playerHpText = scene.add.text(RIGHT_PANEL_CX, tileY(PLAYER_BASE_ROW), '', {
+      fontSize: '11px', color: '#8899ff', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: SIDE_PANEL_W - 4 },
+    }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
-    // Player resources — right side panel, above player base (bottom-right corner)
-    this._resourceText = scene.add.text(
-      BOARD_OFFSET_X + BOARD_W + 4,
-      BOARD_OFFSET_Y + BOARD_H - 72,
-      '', { fontSize: '10px', color: '#ffdd88', fontFamily: 'monospace' },
-    ).setDepth(DEPTH_HUD);
+    // Player resources — right side panel, a few rows above player base
+    this._resourceText = scene.add.text(RIGHT_PANEL_CX, BOARD_OFFSET_Y + BOARD_H - 72, '', {
+      fontSize: '10px', color: '#ffdd88', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: SIDE_PANEL_W - 4 },
+    }).setOrigin(0.5, 0).setDepth(DEPTH_HUD);
 
     // Timer — top-centre of board
     this._timerText = scene.add.text(
@@ -37,8 +42,8 @@ export default class HUD {
   }
 
   updateBaseHp(baseHp) {
-    this._npcHpText.setText(`NPC\nHP:${baseHp.npc}`);
-    this._playerHpText.setText(`Your HP: ${baseHp.player}`);
+    this._npcHpText.setText(`HP\n${baseHp.npc}`);
+    this._playerHpText.setText(`HP\n${baseHp.player}`);
   }
 
   updateResources(res) {
