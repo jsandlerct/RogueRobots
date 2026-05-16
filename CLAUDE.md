@@ -32,7 +32,7 @@ You are implementing this game sprint-by-sprint as directed. At the start of eve
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Engine | Phaser 3 | Installed via npm |
+| Engine | Phaser 4 | Installed via npm — `phaser@^4.1.0`. APIs are largely compatible with the Phaser 3 docs commonly cited in the GDD. |
 | Pathfinding | EasyStar.js | Installed via npm |
 | Language | JavaScript ES6+ | No TypeScript |
 | Build Tool | Vite | `npm run dev` to start |
@@ -82,6 +82,7 @@ These apply at all times and override any other consideration.
 ### Architecture
 - **`GameScene.js` is an orchestrator only.** It initializes and calls systems — it does not contain combat logic, pathfinding logic, spawn logic, or economy logic. If you find yourself writing game logic directly in `GameScene`, stop and put it in the correct system file.
 - **Never hardcode unit stats in JavaScript files.** All stats (HP, damage, range, cost, etc.) must be read from `src/data/units.json`.
+- **All constants live in `src/data/constants.js`.** No other file may define named constants or use bare magic numbers. This includes colors, depths, timing values, grid dimensions, spawn intervals, and UI layout values. If you need a new constant, add it there first, then import it.
 - **One responsibility per file.** If a file is growing beyond ~150 lines, consider whether it is doing too much.
 - **Never create files outside the defined structure** without asking the user first.
 
@@ -154,3 +155,16 @@ A sprint task is complete when:
 - The checkbox in `TODO.md` is marked `[x]`
 
 A sprint is complete when all its tasks are done and the game is in a stable, playable state up to that sprint's scope.
+
+---
+
+## Always Rebuild After Code Changes
+
+The user launches the game by opening `index.html` directly, which loads the pre-built bundle at `assets/game.js`. Source edits in `src/` are **not** reflected until the bundle is regenerated.
+
+**You must run `npm run build` after:**
+- Any bug fix
+- Completing any sprint
+- Any source change you want the user to see by reloading `index.html`
+
+Skip the rebuild only if you have explicitly confirmed the user is testing via `npm run dev` (the Vite dev server reads `src/` directly).

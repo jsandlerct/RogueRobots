@@ -1,125 +1,418 @@
 import Phaser from 'phaser';
-import Serpent, { COLS, ROWS, TILE_SIZE } from '../map/archetypes/Serpent.js';
+import {
+  COLS, ROWS, TILE_SIZE, TILE_PAD, TILE_WALKABLE,
+  BOARD_W, BOARD_H,
+  NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW,
+  DIVIDE_ROW, BASE_HP, BASE_SPRITE_SIZE,
+  COLOR_WALL, COLOR_PATH_NPC, COLOR_PATH_PLAYER,
+  COLOR_DIVIDE, COLOR_DIVIDE_ALPHA, COLOR_DIVIDE_PX,
+  COLOR_NPC_BASE_FALLBACK, COLOR_PLAYER_BASE_FALLBACK,
+  COLOR_NPC_BASE_TINT, COLOR_PLAYER_BASE_TINT,
+  DEPTH_BASE_SPRITE, DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
+  ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
+  TOKEN_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
+} from '../data/constants.js';
+import MapGenerator from '../map/MapGenerator.js';
 import PathfindingSystem from '../systems/PathfindingSystem.js';
 import SpawnSystem from '../systems/SpawnSystem.js';
 import CombatSystem from '../systems/CombatSystem.js';
 import EconomySystem from '../systems/EconomySystem.js';
 import HUD from '../ui/HUD.js';
+import LoadoutBar from '../ui/LoadoutBar.js';
 import Unit from '../entities/Unit.js';
+import ResourceToken from '../entities/ResourceToken.js';
+import unitsData from '../data/units.json';
 
-const COLOR_WALL         = 0x1e1e2e;
-const COLOR_PATH_NPC     = 0x3a4a5a;
-const COLOR_PATH_PLAYER  = 0x2a4a3a;
-const COLOR_NPC_BASE     = 0xcc3333;
-const COLOR_PLAYER_BASE  = 0x3366cc;
-const COLOR_DIVIDE       = 0xffee00;
-
-const DIVIDE_ROW      = 8;
-const NPC_BASE_COL    = 0;  const NPC_BASE_ROW    = 0;
-const PLAYER_BASE_COL = 11; const PLAYER_BASE_ROW = 15;
+// Fallback loadout when GameScene is started directly (dev/testing)
+const DEFAULT_LOADOUT = [
+  'Punchbot', 'Zapbot', 'Scavenger', 'Boombot',
+  'Tankbot', 'Floatbot', 'Boomtrap', 'Zap Tower',
+];
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GameScene' });
   }
 
+  init(data) {
+    this._loadout = data?.loadout ?? DEFAULT_LOADOUT;
+  }
+
   create() {
-    const serpent = new Serpent();
-    this._grid = serpent.getGrid();
+    const mapInstance = MapGenerator.selectArchetype();
+    this._grid    = mapInstance.getGrid();
+    const mapPaths = mapInstance.getPaths ? mapInstance.getPaths() : null;
 
     this._renderGrid(this._grid);
     this._renderDivideLine();
     this._renderBaseLabels();
 
-    this.units = [];
+    this.units          = [];
+    this._tokens        = [];
+    this._unitCooldowns = new Map();
+    this._roundStartTime = null;
+    this._roundOver      = false;
 
     this._economy = new EconomySystem();
-    this._combat = new CombatSystem(
+    this._combat  = new CombatSystem(
       this,
       this._economy,
-      (baseHp) => this._hud.updateBaseHp(baseHp),
+      (baseHp) => { this._hud.updateBaseHp(baseHp); this._updateBaseSprites(baseHp); },
       (winner) => this._onRoundEnd(winner)
     );
 
     this._hud = new HUD(this);
     this._hud.updateBaseHp(this._combat.baseHp);
+    this._hud.updateResources(this._economy.playerResources);
+
+    this._loadoutBar = new LoadoutBar(this, this._loadout);
+    this._loadoutBar.refreshAffordability(this._economy.playerResources);
+    this._loadoutBar.onSelect = (slotIndex, unitName) => this._onSlotSelected(slotIndex, unitName);
+    this._dropMode = false;
 
     this._pathfinding = new PathfindingSystem(this._grid);
-    this._spawnSystem = new SpawnSystem(this, this._pathfinding, (team, path) => {
-      this._onUnitSpawned(team, path);
-    });
+
+    this._spawnSystem = new SpawnSystem(
+      this, this._pathfinding, mapPaths,
+      (team, path) => this._onUnitSpawned(team, path)
+    );
     this._spawnSystem.start();
+
+    this.time.addEvent({
+      delay: TOKEN_SPAWN_INTERVAL_MS,
+      loop: true,
+      callback: this._spawnToken,
+      callbackScope: this,
+    });
+    this._spawnToken();
+
+    this.input.on('pointerdown', (pointer) => {
+      if (pointer.y < BOARD_H) this._onBoardClick(pointer);
+    });
   }
 
   update() {
+    if (this._roundOver) return;
+
+    if (this._roundStartTime === null) this._roundStartTime = this.time.now;
+
+    this._hud.updateTimer(this.time.now - this._roundStartTime);
     this._combat.update();
+    this._loadoutBar.refreshCooldowns(this._unitCooldowns, this.time.now);
   }
+
+  // ── Unit spawning (auto) ───────────────────────────────────────────────────
 
   _onUnitSpawned(team, path) {
     const unit = new Unit(this, path[0].x, path[0].y, 'Grunt', team);
-    unit.followPath(path);
+    this._attachTokenCallback(unit, team);
+    unit.followPath(this._trimPathToRange(path, unit.stats.range));
     this._combat.addUnit(unit);
     this.units.push(unit);
   }
 
+  _trimPathToRange(path, range) {
+    const stop = Math.max(0, path.length - 1 - range);
+    return path.slice(0, stop + 1);
+  }
+
+  // ── Slot selection → Base spawn or drop mode ─────────────────────────────
+
+  _onSlotSelected(slotIndex, unitName) {
+    if (!unitName) {
+      this._exitDropMode();
+      return;
+    }
+    const stats = unitsData.find(u => u.name === unitName);
+    if (stats.spawn === 'Base') {
+      this._exitDropMode();
+      this._tryDeployAtBase(slotIndex, unitName, stats);
+      this._loadoutBar.deselect();
+    } else {
+      this._enterDropMode();
+    }
+  }
+
+  _tryDeployAtBase(slotIndex, unitName, stats) {
+    if (!this._economy.canAfford(stats.cost)) {
+      this._showFeedback('Not enough resources!');
+      return;
+    }
+    const now        = this.time.now;
+    const cooldownMs = (stats.cooldown ?? 0) * 1000;
+    if (now - (this._unitCooldowns.get(slotIndex) ?? 0) < cooldownMs) {
+      const remaining = Math.ceil((cooldownMs - (now - this._unitCooldowns.get(slotIndex))) / 1000);
+      this._showFeedback(`${unitName} cooldown: ${remaining}s`);
+      return;
+    }
+    this._economy.spend(stats.cost);
+    this._unitCooldowns.set(slotIndex, now);
+    this._refreshEconomyUI();
+    this._deployUnit(unitName, PLAYER_BASE_COL, PLAYER_BASE_ROW, stats);
+    this._showFeedback(`${unitName} deployed!`);
+  }
+
+  _enterDropMode() {
+    this._dropMode = true;
+    this.game.canvas.style.cursor = 'crosshair';
+  }
+
+  _exitDropMode() {
+    this._dropMode = false;
+    this.game.canvas.style.cursor = 'default';
+  }
+
+  // ── Deployment (drop) ─────────────────────────────────────────────────────
+
+  _onBoardClick(pointer) {
+    if (!this._dropMode) return;
+    const slotIndex = this._loadoutBar.selectedSlotIndex;
+    const unitName  = this._loadoutBar.selectedUnit;
+    if (!unitName) return;
+
+    const col = Math.floor(pointer.x / TILE_SIZE);
+    const row = Math.floor(pointer.y / TILE_SIZE);
+
+    if (row < DIVIDE_ROW || row > ROWS - 1) {
+      this._showFeedback('Player side only!');
+      return;
+    }
+
+    const stats    = unitsData.find(u => u.name === unitName);
+    const walkable = this._grid[row][col] === TILE_WALKABLE;
+
+    if (stats.isRobot && !walkable) {
+      this._showFeedback('Robots → path tiles only');
+      return;
+    }
+    if (!stats.isRobot && walkable) {
+      this._showFeedback('Towers → wall tiles only');
+      return;
+    }
+
+    if (!this._economy.canAfford(stats.cost)) {
+      this._showFeedback('Not enough resources!');
+      return;
+    }
+
+    const now        = this.time.now;
+    const cooldownMs = (stats.cooldown ?? 0) * 1000;
+    if (now - (this._unitCooldowns.get(slotIndex) ?? 0) < cooldownMs) {
+      const remaining = Math.ceil((cooldownMs - (now - this._unitCooldowns.get(slotIndex))) / 1000);
+      this._showFeedback(`${unitName} cooldown: ${remaining}s`);
+      return;
+    }
+
+    this._economy.spend(stats.cost);
+    this._unitCooldowns.set(slotIndex, now);
+    this._refreshEconomyUI();
+    this._deployUnit(unitName, col, row, stats);
+    this._exitDropMode();
+    this._loadoutBar.deselect();
+  }
+
+  async _deployUnit(unitName, col, row, stats) {
+    const unit = new Unit(this, col, row, unitName, 'player');
+    this._attachTokenCallback(unit, 'player');
+    this._combat.addUnit(unit);
+    this.units.push(unit);
+
+    if (stats.specialBehavior === 'scavenger') {
+      await this._startScavengerPath(unit);
+    } else if (stats.specialBehavior === 'floatbot_fly') {
+      const path = this._straightLinePath(col, row, NPC_BASE_COL, NPC_BASE_ROW);
+      unit.followPath(this._trimPathToRange(path, unit.stats.range));
+    } else if (stats.isRobot) {
+      const path = await this._pathfinding.findPath(col, row, NPC_BASE_COL, NPC_BASE_ROW);
+      if (path && path.length > 1) unit.followPath(this._trimPathToRange(path, unit.stats.range));
+    }
+    // Stationary towers/traps don't move; CombatSystem handles their attacks
+  }
+
+  _straightLinePath(fromCol, fromRow, toCol, toRow) {
+    const path = [{ x: fromCol, y: fromRow }];
+    let c = fromCol, r = fromRow;
+    while (c !== toCol || r !== toRow) {
+      if (c !== toCol) c += c < toCol ? 1 : -1;
+      if (r !== toRow) r += r < toRow ? 1 : -1;
+      path.push({ x: c, y: r });
+    }
+    return path;
+  }
+
+  // ── Scavenger ─────────────────────────────────────────────────────────────
+
+  async _startScavengerPath(unit) {
+    const target = this._nearestToken(unit.col, unit.row);
+    if (!target) return;
+    const path = await this._pathfinding.findPath(
+      unit.col, unit.row, target.col, target.row
+    );
+    if (path && path.length > 1) unit.followPath(path);
+  }
+
+  _nearestToken(col, row) {
+    let nearest = null, best = Infinity;
+    for (const t of this._tokens) {
+      if (!t.alive) continue;
+      const d = Math.abs(t.col - col) + Math.abs(t.row - row);
+      if (d < best) { best = d; nearest = t; }
+    }
+    return nearest;
+  }
+
+  // ── Token lifecycle ───────────────────────────────────────────────────────
+
+  _spawnToken() {
+    const occupied = new Set(
+      this._tokens.filter(t => t.alive).map(t => `${t.col},${t.row}`)
+    );
+    const candidates = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (this._grid[r][c] !== TILE_WALKABLE) continue;
+        if (c === NPC_BASE_COL    && r === NPC_BASE_ROW)    continue;
+        if (c === PLAYER_BASE_COL && r === PLAYER_BASE_ROW) continue;
+        if (occupied.has(`${c},${r}`)) continue;
+        candidates.push({ col: c, row: r });
+      }
+    }
+    if (candidates.length === 0) return;
+    const tile = Phaser.Utils.Array.GetRandom(candidates);
+    const type = Math.random() < 0.5 ? 'battery' : 'silicon';
+    this._tokens.push(new ResourceToken(this, tile.col, tile.row, type));
+  }
+
+  _attachTokenCallback(unit, team) {
+    unit.onTileEntered = (col, row) => this._onUnitTileEntered(col, row, unit, team);
+  }
+
+  _onUnitTileEntered(col, row, unit, team) {
+    let collected = false;
+    for (const token of this._tokens) {
+      if (!token.alive || token.col !== col || token.row !== row) continue;
+      token.collect();
+      if (team === 'player') this._economy.collectToken(token.type, token.amount);
+      collected = true;
+    }
+    this._tokens = this._tokens.filter(t => t.alive);
+
+    if (collected && team === 'player') {
+      this._refreshEconomyUI();
+      if (unit.stats.specialBehavior === 'scavenger') {
+        unit.destroy();
+        this._combat._units = this._combat._units.filter(u => u !== unit);
+      }
+    }
+  }
+
+  _refreshEconomyUI() {
+    this._hud.updateResources(this._economy.playerResources);
+    this._loadoutBar.refreshAffordability(this._economy.playerResources);
+  }
+
+  // ── Round end + Play Again ────────────────────────────────────────────────
+
   _onRoundEnd(winner) {
+    this._roundOver = true;
+    this._exitDropMode();
     this._spawnSystem.stop();
 
-    const boardW = COLS * TILE_SIZE;
-    const boardH = ROWS * TILE_SIZE;
-    const msg = winner === 'player' ? 'YOU WIN!' : 'YOU LOSE!';
+    const msg   = winner === 'player' ? 'YOU WIN!' : 'YOU LOSE!';
     const color = winner === 'player' ? '#44ff44' : '#ff4444';
 
-    this.add.rectangle(boardW / 2, boardH / 2, 220, 60, 0x000000, 0.8)
-      .setDepth(20);
-    this.add.text(boardW / 2, boardH / 2, msg, {
+    this.add.rectangle(BOARD_W / 2, BOARD_H / 2,
+      ROUND_END_PANEL_W, ROUND_END_PANEL_H, 0x000000, ROUND_END_PANEL_ALPHA)
+      .setDepth(DEPTH_ROUND_END_BG);
+    this.add.text(BOARD_W / 2, BOARD_H / 2 - 25, msg, {
       fontSize: '28px', color, fontFamily: 'monospace', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(21);
+    }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_TEXT);
+
+    const btn = this.add.text(BOARD_W / 2, BOARD_H / 2 + 22, '[ PLAY AGAIN ]', {
+      fontSize: '15px', color: '#ffffff', fontFamily: 'monospace',
+      backgroundColor: '#1a2233', padding: { x: 12, y: 6 },
+    }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_BTN).setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => this.scene.start('DraftScene'));
   }
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+
+  _showFeedback(msg) {
+    const text = this.add.text(BOARD_W / 2, BOARD_H / 2 - 40, msg, {
+      fontSize: '13px', color: '#ffcc00', fontFamily: 'monospace',
+      backgroundColor: '#000000cc', padding: { x: 8, y: 4 },
+    }).setOrigin(0.5).setDepth(DEPTH_FEEDBACK);
+    this.time.delayedCall(FEEDBACK_DURATION_MS, () => text.destroy());
+  }
+
+  // ── Rendering ─────────────────────────────────────────────────────────────
 
   _renderGrid(grid) {
     const gfx = this.add.graphics();
-    const pad = 1;
-
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
-        const x = col * TILE_SIZE;
-        const y = row * TILE_SIZE;
         const isNpcBase    = col === NPC_BASE_COL    && row === NPC_BASE_ROW;
         const isPlayerBase = col === PLAYER_BASE_COL && row === PLAYER_BASE_ROW;
-        const isPath = grid[row][col] === 1;
-
-        let color;
-        if (isNpcBase)         color = COLOR_NPC_BASE;
-        else if (isPlayerBase) color = COLOR_PLAYER_BASE;
-        else if (isPath)       color = row < DIVIDE_ROW ? COLOR_PATH_NPC : COLOR_PATH_PLAYER;
-        else                   color = COLOR_WALL;
-
+        if (isNpcBase || isPlayerBase) {
+          gfx.fillStyle(COLOR_PATH_NPC, 1);
+          gfx.fillRect(col * TILE_SIZE + TILE_PAD, row * TILE_SIZE + TILE_PAD,
+                       TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2);
+          continue;
+        }
+        const isPath = grid[row][col] === TILE_WALKABLE;
+        const color  = isPath
+          ? (row < DIVIDE_ROW ? COLOR_PATH_NPC : COLOR_PATH_PLAYER)
+          : COLOR_WALL;
         gfx.fillStyle(color, 1);
-        gfx.fillRect(x + pad, y + pad, TILE_SIZE - pad * 2, TILE_SIZE - pad * 2);
+        gfx.fillRect(col * TILE_SIZE + TILE_PAD, row * TILE_SIZE + TILE_PAD,
+                     TILE_SIZE - TILE_PAD * 2, TILE_SIZE - TILE_PAD * 2);
       }
     }
   }
 
   _renderDivideLine() {
     const gfx = this.add.graphics();
-    gfx.lineStyle(2, COLOR_DIVIDE, 0.85);
-    gfx.lineBetween(0, DIVIDE_ROW * TILE_SIZE, COLS * TILE_SIZE, DIVIDE_ROW * TILE_SIZE);
+    gfx.lineStyle(COLOR_DIVIDE_PX, COLOR_DIVIDE, COLOR_DIVIDE_ALPHA);
+    gfx.lineBetween(0, DIVIDE_ROW * TILE_SIZE, BOARD_W, DIVIDE_ROW * TILE_SIZE);
   }
 
   _renderBaseLabels() {
-    const style = { fontSize: '9px', color: '#ffffff', fontFamily: 'monospace', align: 'center' };
+    const hasBaseSprite = this.textures.exists('base');
 
-    this.add.text(
-      NPC_BASE_COL * TILE_SIZE + TILE_SIZE / 2,
-      NPC_BASE_ROW * TILE_SIZE + TILE_SIZE / 2,
-      'NPC\nBASE', style
-    ).setOrigin(0.5);
+    const makeBase = (col, row, animKey, tint, fallbackColor) => {
+      const cx = col * TILE_SIZE + TILE_SIZE / 2;
+      const cy = row * TILE_SIZE + TILE_SIZE / 2;
+      if (hasBaseSprite) {
+        const spr = this.add.sprite(cx, cy, 'base', 'walk_0')
+          .setDisplaySize(BASE_SPRITE_SIZE, BASE_SPRITE_SIZE)
+          .setDepth(DEPTH_BASE_SPRITE);
+        if (tint !== null) spr.setTint(tint);
+        spr.play(animKey);
+        return spr;
+      }
+      this.add.rectangle(cx, cy, TILE_SIZE - 2, TILE_SIZE - 2, fallbackColor).setDepth(DEPTH_BASE_SPRITE);
+      const style = { fontSize: '9px', color: '#ffffff', fontFamily: 'monospace', align: 'center' };
+      this.add.text(cx, cy, col === 0 ? 'NPC\nBASE' : 'YOUR\nBASE', style).setOrigin(0.5).setDepth(DEPTH_BASE_SPRITE + 1);
+      return null;
+    };
 
-    this.add.text(
-      PLAYER_BASE_COL * TILE_SIZE + TILE_SIZE / 2,
-      PLAYER_BASE_ROW * TILE_SIZE + TILE_SIZE / 2,
-      'YOUR\nBASE', style
-    ).setOrigin(0.5);
+    this._npcBaseSprite    = makeBase(NPC_BASE_COL,    NPC_BASE_ROW,    'base_regular', COLOR_NPC_BASE_TINT,    COLOR_NPC_BASE_FALLBACK);
+    this._playerBaseSprite = makeBase(PLAYER_BASE_COL, PLAYER_BASE_ROW, 'base_regular', COLOR_PLAYER_BASE_TINT, COLOR_PLAYER_BASE_FALLBACK);
+  }
+
+  _updateBaseSprites(baseHp) {
+    const update = (spr, hp) => {
+      if (!spr || !spr.active) return;
+      const currentKey = spr.anims.currentAnim?.key;
+      const pct = hp / BASE_HP;
+      if (pct <= 0 && currentKey !== 'base_destroyed') {
+        spr.play('base_destroyed');
+      } else if (pct <= 0.5 && pct > 0 && currentKey !== 'base_damaged') {
+        spr.play('base_damaged');
+      }
+    };
+    update(this._npcBaseSprite,    baseHp.npc);
+    update(this._playerBaseSprite, baseHp.player);
   }
 }

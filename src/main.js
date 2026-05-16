@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
+import { CANVAS_W, CANVAS_H, CANVAS_BG } from './data/constants.js';
 import BootScene from './scenes/BootScene.js';
 import DraftScene from './scenes/DraftScene.js';
 import GameScene from './scenes/GameScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  backgroundColor: '#1a1a2e',
+  backgroundColor: CANVAS_BG,
   scene: [BootScene, DraftScene, GameScene],
   pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 480,
-    height: 640,
+    width: CANVAS_W,
+    height: CANVAS_H,
     parent: 'app',
   },
 };

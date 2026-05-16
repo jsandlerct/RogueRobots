@@ -126,7 +126,7 @@ Goal: Units fight, die, and deal damage to bases.
 - [x] Unit death: remove unit from scene when HP reaches 0
 - [x] **Metal economy:** award 1 Metal to the team whose unit lands the killing blow (`EconomySystem.js`)
 - [x] Base damage: units that reach the opposing base deal 1 damage per second to it
-- [x] Track and display both base HP values in the HUD (`HUD.js`) — base HP set to 10 (not specified in GDD; reasonable default)
+- [x] Track and display both base HP values in the HUD (`HUD.js`) — base HP set to 50
 - [x] Win/loss detection: end round when either base HP reaches 0
 
 ---
@@ -135,20 +135,20 @@ Goal: Units fight, die, and deal damage to bases.
 
 Goal: Player can spend resources to deploy Special Robots and Towers mid-round.
 
-- [ ] `EconomySystem.js`: track Metal, Batteries, and Silicon separately for the player
-- [ ] `HUD.js`: display current resource counts
-- [ ] `ResourceToken.js`: spawn Battery and Silicon tokens at random walkable tiles during the round
-- [ ] Token collection: tokens picked up when any friendly unit walks over them
-- [ ] `LoadoutBar.js`: render up to 8 loadout slots at bottom of screen
-- [ ] Hardcode a default 8-unit loadout for Sprint 4 testing
-- [ ] Two-step tap-to-place deployment (GDD Section 11):
+- [x] `EconomySystem.js`: track Metal, Batteries, and Silicon separately for the player — starting pool: M:20 Si:5 B:5
+- [x] `HUD.js`: display current resource counts (top-right overlay)
+- [x] `ResourceToken.js`: spawn Battery (cyan) and Silicon (purple) tokens at random walkable tiles every 8s + one at round start
+- [x] Token collection: tokens picked up when any friendly player unit walks over them
+- [x] `LoadoutBar.js`: render 8 loadout slots at y=640 (canvas expanded to 700); slots dim when unaffordable
+- [x] Hardcode a default 8-unit loadout for Sprint 4 testing: Grunt, Punchbot, Zapbot, Scavenger, Boombot, Tankbot, Floatbot, Zap Tower
+- [x] Two-step tap-to-place deployment (GDD Section 11):
   - Tap loadout slot → unit equipped (highlighted)
   - Tap valid tile → unit placed, resources deducted
   - Robots → walkable tiles only; Towers → wall tiles only
-  - Player-side only (Rows 9–16); reject invalid placements silently or with brief feedback
-- [ ] Enforce **1-second Universal Deployment Cooldown** between any placements
-- [ ] Enforce resource cost check; prevent and indicate deployment if insufficient resources
-- [ ] Implement **Scavenger** special behavior: paths to nearest resource token; self-destructs on pickup
+  - Player-side only (Rows 8–15 0-indexed); reject invalid placements with brief feedback
+- [x] Enforce **1-second Universal Deployment Cooldown** between any placements
+- [x] Enforce resource cost check; prevent and indicate deployment if insufficient resources
+- [x] Implement **Scavenger** special behavior: paths to nearest resource token; self-destructs on pickup
 
 ---
 
@@ -156,20 +156,20 @@ Goal: Player can spend resources to deploy Special Robots and Towers mid-round.
 
 Goal: A complete playable round from draft to win/loss.
 
-- [ ] `DraftScene.js`: player selects up to 8 units from their unlocked pool (Lvl 1 units only for now)
-- [ ] Display predetermined starting resource pool during draft phase
-- [ ] Transition from draft to game board on confirmation
-- [ ] Display round timer on HUD
-- [ ] `SpawnSystem.js`: implement **Escalation Timer** (GDD Section 13):
+- [x] `DraftScene.js`: player selects up to 8 units from their unlocked pool (Lvl 1 units only: Grunt, Punchbot, Zapbot, Scavenger)
+- [x] Display predetermined starting resource pool during draft phase (M:20 Si:5 B:5)
+- [x] Transition from draft to game board on confirmation (loadout passed via scene data)
+- [x] Display round timer on HUD (top-center, counts up from 0:00)
+- [x] `SpawnSystem.js`: implement **Escalation Timer** (GDD Section 13):
   - At 5:00 — NPC spawn rate → 1 Grunt per **2 seconds**
   - At 10:00 — NPC spawn rate → 1 Grunt per **1 second**
-- [ ] Win screen on NPC base destruction
-- [ ] Loss screen on Player base destruction
-- [ ] "Play Again" flow: returns to draft screen and resets all round state
-- [ ] `MapGenerator.js`: randomly select one of three archetypes per round
-- [ ] Implement **Fork** archetype in `Fork.js` (multi-lane path)
-- [ ] Implement **Grid** archetype in `Grid.js` (open webbed layout)
-- [ ] Validate pathfinding works correctly on all three archetypes
+- [x] Win screen on NPC base destruction
+- [x] Loss screen on Player base destruction
+- [x] "Play Again" flow: returns to draft screen and resets all round state
+- [x] `MapGenerator.js`: randomly select one of three archetypes per round
+- [x] Implement **Fork** archetype in `Fork.js` (two-lane: left-column vs top-row, merge at row 7)
+- [x] Implement **Grid** archetype in `Grid.js` (three corridors: col 0, 5, 11 with horizontal connectors)
+- [x] Validate pathfinding works correctly on all three archetypes — pre-defined paths used for Fork/Grid; EasyStar used for Serpent and player-deployed unit routing
 
 ---
 
@@ -177,18 +177,18 @@ Goal: A complete playable round from draft to win/loss.
 
 Goal: All 9 units fully implemented with correct stats and behaviors.
 
-- [ ] **Grunt** — confirm stats and behavior match GDD (baseline from Sprints 2–3)
-- [ ] **Punchbot** — standard melee; confirm cost and stats
-- [ ] **Zapbot** — ranged (Range 3); confirm cost and stats
-- [ ] **Scavenger** — resource-seeker, Drop spawn, self-destructs on pickup *(started Sprint 4)*
-- [ ] **Boombot** — AoE on first attack, self-destructs, fast; confirm cost and stats
-- [ ] **Tankbot** — high HP, Armor 1, slow; confirm cost and stats
-- [ ] **Floatbot** — ignores path, moves in straight line; only targetable by Range > 1 units
-- [ ] **Boomtrap** — stationary Drop unit, triggers on enemy proximity, AoE self-destruct
-- [ ] **Zap Tower** — wall-placed, Range 3, medium attack speed
-- [ ] Verify all unit costs match `src/data/units.json`
-- [ ] Verify Spawn type rules enforced for all units (Base vs. Drop)
-- [ ] Verify unlock gating: Lvl 1 available by default; Lvl 2 and Lvl 3 locked in draft
+- [x] **Grunt** — stats and behavior confirmed (baseline from Sprints 2–3)
+- [x] **Punchbot** — standard melee; stats confirmed, works via existing combat system
+- [x] **Zapbot** — ranged (Range 3); stats confirmed, existing range check handles it
+- [x] **Scavenger** — resource-seeker, Drop spawn, self-destructs on pickup (from Sprint 4)
+- [x] **Boombot** — AoE on first attack in CombatSystem._tryAttack; self-destructs after explosion
+- [x] **Tankbot** — Armor 1, slow speed; handled by existing damage formula and move speed
+- [x] **Floatbot** — straight-line path via GameScene._straightLinePath; range-1 units cannot target it (CombatSystem._closestInRange)
+- [x] **Boomtrap** — CombatSystem._tryBoomtrap: proximity check each frame, AoE + self-destruct on trigger
+- [x] **Zap Tower** — wall-placed, Range 3 handled by existing combat system
+- [x] Verify all unit costs match `src/data/units.json`
+- [x] Verify Spawn type rules enforced for all units (Base vs. Drop) — GameScene._onBoardClick checks isRobot vs walkable
+- [x] Verify unlock gating: Lvl 1 available by default; Lvl 2 and Lvl 3 locked in draft — DraftScene filters unlockLevel === 1
 
 ---
 

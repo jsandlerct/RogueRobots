@@ -1,7 +1,3 @@
-export const COLS = 12;
-export const ROWS = 16;
-export const TILE_SIZE = 40;
-
 // 0 = wall, 1 = walkable path
 // NPC base: col 0, row 0 (top-left)
 // Player base: col 11, row 15 (bottom-right)

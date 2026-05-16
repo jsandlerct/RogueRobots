@@ -1,64 +1,102 @@
-import { TILE_SIZE } from '../map/archetypes/Serpent.js';
+import {
+  TILE_SIZE, MOVE_MS, UNIT_SIZE,
+  NPC_UNIT_TINT, TEAM_BORDER_COLOR, TEAM_BORDER_PX,
+  DEPTH_UNIT_SPRITE, DEPTH_UNIT_OUTLINE,
+} from '../data/constants.js';
 import unitsData from '../data/units.json';
-
-const MOVE_MS = { slow: 500, medium: 300, fast: 150, none: 0 };
-const UNIT_SIZE = TILE_SIZE - 10;
-const TEAM_COLOR = { player: 0x44cc44, npc: 0xcc4422 };
+import { UNIT_SPRITE_KEY } from '../data/spriteData.js';
 
 export default class Unit {
   constructor(scene, col, row, unitName, team) {
     this.scene = scene;
-    this.col = col;
-    this.row = row;
-    this.team = team;
+    this.col   = col;
+    this.row   = row;
+    this.team  = team;
     this.alive = true;
     this.paused = false;
     this.atBase = false;
 
     this.stats = unitsData.find(u => u.name === unitName);
-    this.hp = this.stats.hp;
+    this.hp    = this.stats.hp;
 
-    const x = col * TILE_SIZE + TILE_SIZE / 2;
-    const y = row * TILE_SIZE + TILE_SIZE / 2;
-    this.sprite = scene.add.rectangle(x, y, UNIT_SIZE, UNIT_SIZE, TEAM_COLOR[team]);
+    const cx       = col * TILE_SIZE + TILE_SIZE / 2;
+    const cy       = row * TILE_SIZE + TILE_SIZE / 2;
+    const atlasKey = UNIT_SPRITE_KEY[unitName];
 
-    this._path = null;
-    this._pathIndex = 0;
-    this._tween = null;
-    this._lastAtkTime = 0;
+    if (atlasKey && scene.textures.exists(atlasKey)) {
+      this.sprite = scene.add.sprite(cx, cy, atlasKey, 'walk_0')
+        .setDisplaySize(UNIT_SIZE, UNIT_SIZE)
+        .setDepth(DEPTH_UNIT_SPRITE);
 
-    // Called when unit arrives at opposing base
+      if (team === 'npc') this.sprite.setTint(NPC_UNIT_TINT);
+      this.sprite.play(`${atlasKey}_walk`);
+
+      if (this.sprite.preFX) {
+        this.sprite.preFX.addOutline(TEAM_BORDER_PX, TEAM_BORDER_COLOR[team]);
+      }
+
+      this._teamRect  = null;
+      this._useSprite = true;
+    } else {
+      // Fallback: colored rectangle with team-color stroke.
+      const unitColor = parseInt(this.stats.color.slice(1), 16);
+      this.sprite = scene.add.rectangle(cx, cy, UNIT_SIZE, UNIT_SIZE, unitColor)
+        .setStrokeStyle(TEAM_BORDER_PX, TEAM_BORDER_COLOR[team])
+        .setDepth(DEPTH_UNIT_SPRITE);
+      this._teamRect  = null;
+      this._useSprite = false;
+    }
+
+    this._atlasKey       = atlasKey;
+    this._path           = null;
+    this._pathIndex      = 0;
+    this._tween          = null;
+    this._inTween        = false;
+    this._tweenWasPaused = false;
+    this._lastAtkTime    = 0;
+
     this.onPathComplete = null;
+    this.onTileEntered  = null;
   }
 
   followPath(path) {
-    this._path = path;
+    this._path      = path;
     this._pathIndex = 0;
     this._step();
   }
 
   _step() {
     if (!this.alive) return;
-    if (this._pathIndex >= this._path.length - 1) {
-      this.atBase = true;
-      if (this.onPathComplete) this.onPathComplete(this);
+    if (!this._path || this._pathIndex >= this._path.length - 1) {
+      if (this._path) {
+        this.atBase = true;
+        if (this.onPathComplete) this.onPathComplete(this);
+      }
       return;
     }
     if (this.paused) return;
 
     this._pathIndex++;
-    const next = this._path[this._pathIndex];
+    const next     = this._path[this._pathIndex];
     const duration = MOVE_MS[this.stats.moveSpeed] ?? 300;
 
-    this._tween = this.scene.tweens.add({
-      targets: this.sprite,
-      x: next.x * TILE_SIZE + TILE_SIZE / 2,
-      y: next.y * TILE_SIZE + TILE_SIZE / 2,
+    if (this._useSprite && next.x !== this.col) {
+      this.sprite.setFlipX(next.x < this.col);
+    }
+
+    this._inTween = true;
+    this._tween   = this.scene.tweens.add({
+      targets:  this.sprite,
+      x:        next.x * TILE_SIZE + TILE_SIZE / 2,
+      y:        next.y * TILE_SIZE + TILE_SIZE / 2,
       duration,
-      ease: 'Linear',
+      ease:     'Linear',
       onComplete: () => {
+        this._inTween        = false;
+        this._tweenWasPaused = false;
         this.col = next.x;
         this.row = next.y;
+        if (this.onTileEntered) this.onTileEntered(this.col, this.row);
         this._step();
       },
     });
@@ -66,18 +104,27 @@ export default class Unit {
 
   pause() {
     if (this.paused) return;
-    this.paused = true;
-    if (this._tween && this._tween.isPlaying()) {
+    this.paused          = true;
+    this._tweenWasPaused = false;
+    if (this._inTween && this._tween) {
       this._tween.pause();
+      this._tweenWasPaused = true;
+    }
+    if (this._useSprite && this._atlasKey) {
+      this.sprite.play(`${this._atlasKey}_attack`);
     }
   }
 
   resume() {
     if (!this.paused) return;
     this.paused = false;
-    if (this._tween && this._tween.isPaused()) {
+    if (this._useSprite && this._atlasKey) {
+      this.sprite.play(`${this._atlasKey}_walk`);
+    }
+    if (this._tweenWasPaused && this._tween) {
       this._tween.resume();
-    } else {
+      this._tweenWasPaused = false;
+    } else if (this._path) {
       this._step();
     }
   }
@@ -94,6 +141,14 @@ export default class Unit {
   destroy() {
     this.alive = false;
     if (this._tween) this._tween.stop();
-    if (this.sprite) this.sprite.destroy();
+
+    if (this._useSprite && this._atlasKey && this.sprite) {
+      this.sprite.play(`${this._atlasKey}_die`);
+      this.sprite.once('animationcomplete', () => {
+        if (this.sprite) { this.sprite.destroy(); this.sprite = null; }
+      });
+    } else {
+      if (this.sprite) { this.sprite.destroy(); this.sprite = null; }
+    }
   }
 }

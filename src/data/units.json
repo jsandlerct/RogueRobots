@@ -1,6 +1,7 @@
 [
   {
     "name": "Grunt",
+    "color": "#333333",
     "isRobot": true,
     "cost": { "metal": 0, "silicon": 0, "batteries": 0 },
     "spawn": "Base",
@@ -11,10 +12,12 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "cooldown": 0,
     "unlockLevel": 1
   },
   {
     "name": "Punchbot",
+    "color": "#2255cc",
     "isRobot": true,
     "cost": { "metal": 3, "silicon": 0, "batteries": 0 },
     "spawn": "Base",
@@ -25,10 +28,12 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "cooldown": 5,
     "unlockLevel": 1
   },
   {
     "name": "Zapbot",
+    "color": "#00aacc",
     "isRobot": true,
     "cost": { "metal": 3, "silicon": 0, "batteries": 1 },
     "spawn": "Base",
@@ -39,10 +44,12 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "cooldown": 5,
     "unlockLevel": 1
   },
   {
     "name": "Scavenger",
+    "color": "#aa9900",
     "isRobot": true,
     "cost": { "metal": 3, "silicon": 1, "batteries": 0 },
     "spawn": "Drop",
@@ -53,10 +60,12 @@
     "moveSpeed": "fast",
     "atkSpeed": "slow",
     "specialBehavior": "scavenger",
+    "cooldown": 5,
     "unlockLevel": 1
   },
   {
     "name": "Boombot",
+    "color": "#cc2222",
     "isRobot": true,
     "cost": { "metal": 3, "silicon": 1, "batteries": 1 },
     "spawn": "Base",
@@ -67,10 +76,12 @@
     "moveSpeed": "fast",
     "atkSpeed": "fast",
     "specialBehavior": "boombot_aoe",
+    "cooldown": 5,
     "unlockLevel": 2
   },
   {
     "name": "Tankbot",
+    "color": "#112266",
     "isRobot": true,
     "cost": { "metal": 7, "silicon": 0, "batteries": 0 },
     "spawn": "Base",
@@ -81,10 +92,12 @@
     "moveSpeed": "slow",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "cooldown": 7,
     "unlockLevel": 2
   },
   {
     "name": "Floatbot",
+    "color": "#cc7722",
     "isRobot": true,
     "cost": { "metal": 2, "silicon": 2, "batteries": 2 },
     "spawn": "Base",
@@ -95,10 +108,12 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": "floatbot_fly",
+    "cooldown": 7,
     "unlockLevel": 3
   },
   {
     "name": "Boomtrap",
+    "color": "#771111",
     "isRobot": false,
     "cost": { "metal": 5, "silicon": 1, "batteries": 2 },
     "spawn": "Drop",
@@ -109,10 +124,12 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": "boomtrap",
+    "cooldown": 10,
     "unlockLevel": 3
   },
   {
     "name": "Zap Tower",
+    "color": "#882299",
     "isRobot": false,
     "cost": { "metal": 5, "silicon": 1, "batteries": 5 },
     "spawn": "Drop",
@@ -123,6 +140,7 @@
     "moveSpeed": "none",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "cooldown": 10,
     "unlockLevel": 3
   }
 ]

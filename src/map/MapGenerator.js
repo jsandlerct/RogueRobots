@@ -1,3 +1,12 @@
+import Serpent from './archetypes/Serpent.js';
+import Fork from './archetypes/Fork.js';
+import Grid from './archetypes/Grid.js';
+
+const ARCHETYPES = [Serpent, Fork, Grid];
+
 export default class MapGenerator {
-  // Randomly selects a map archetype and returns the tile grid
+  static selectArchetype() {
+    const Archetype = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
+    return new Archetype();
+  }
 }
