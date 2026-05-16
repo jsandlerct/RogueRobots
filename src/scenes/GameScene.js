@@ -4,7 +4,7 @@ import {
   BOARD_W, BOARD_H, BOARD_OFFSET_X, BOARD_OFFSET_Y,
   NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW,
   DIVIDE_ROW, BASE_HP, BASE_SPRITE_SIZE,
-  NPC_UNIT_TINT, NPC_SLOT_W, NPC_SLOT_H, NPC_LOADOUT_BAR_H,
+  NPC_UNIT_TINT, NPC_SLOT_W, NPC_SLOT_H, NPC_LOADOUT_BAR_H, LOADOUT_BAR_X,
   COLOR_WALL, COLOR_PATH_NPC, COLOR_PATH_PLAYER,
   COLOR_DIVIDE, COLOR_DIVIDE_ALPHA, COLOR_DIVIDE_PX,
   COLOR_NPC_BASE_FALLBACK, COLOR_PLAYER_BASE_FALLBACK,
@@ -32,8 +32,8 @@ const DEFAULT_LOADOUT = [
   'Tankbot', 'Floatbot', 'Boomtrap', 'Zap Tower',
 ];
 
-// NPC auto-spawns only Grunts — displayed in the enemy loadout bar
-const NPC_ROSTER = ['Grunt'];
+// NPC level 1 roster — displayed in the enemy loadout bar
+const NPC_ROSTER = ['Punchbot', 'Punchbot', 'Zapbot', 'Zapbot'];
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -371,17 +371,17 @@ export default class GameScene extends Phaser.Scene {
     gfx.lineStyle(1, 0x334455, 0.8);
     gfx.lineBetween(BOARD_OFFSET_X, NPC_LOADOUT_BAR_H - 1, BOARD_OFFSET_X + BOARD_W, NPC_LOADOUT_BAR_H - 1);
 
-    // "ENEMY:" label
-    this.add.text(BOARD_OFFSET_X + 4, NPC_LOADOUT_BAR_H / 2, 'ENEMY:', {
-      fontSize: '9px', color: '#ff9999', fontFamily: 'monospace',
-    }).setOrigin(0, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+    // "ENEMY:" label sits in the left side panel, not inline with the slots
+    this.add.text(4, NPC_LOADOUT_BAR_H / 2, 'ENEMY\nROSTER', {
+      fontSize: '8px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: 56 },
+    }).setOrigin(0.5, 0.5).setX(30).setDepth(DEPTH_NPC_LOADOUT_TEXT);
 
-    // NPC unit slots — one per unit in the roster
-    const labelW = 52; // approx width of "ENEMY:" label + padding
+    // NPC unit slots — aligned with the player loadout bar below
     NPC_ROSTER.forEach((unitName, i) => {
       const stats     = unitsData.find(u => u.name === unitName);
       const fillColor = parseInt(stats.color.slice(1), 16);
-      const cx = BOARD_OFFSET_X + labelW + i * (NPC_SLOT_W + 4) + NPC_SLOT_W / 2;
+      const cx = LOADOUT_BAR_X + i * NPC_SLOT_W + NPC_SLOT_W / 2;
       const cy = NPC_LOADOUT_BAR_H / 2;
 
       // Slot background
