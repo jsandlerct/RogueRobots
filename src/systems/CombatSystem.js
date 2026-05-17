@@ -1,5 +1,7 @@
 import {
-  TILE_SIZE, BASE_HP, BASE_ARMOR, ATK_MS, MIN_DAMAGE,
+  TILE_SIZE, BOARD_OFFSET_X, BOARD_OFFSET_Y,
+  NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW,
+  BASE_HP, BASE_ARMOR, ATK_MS, MIN_DAMAGE,
   RANGE_TOLERANCE, BOOMBOT_AOE_RADIUS,
   TEAM_BORDER_COLOR,
   PROJECTILE_RADIUS, PROJECTILE_GLOW_STRENGTH, PROJECTILE_GLOW_QUALITY, PROJECTILE_GLOW_DISTANCE,
@@ -110,17 +112,20 @@ export default class CombatSystem {
   }
 
   _fireProjectile(attacker, target) {
+    const toX = target.sprite ? target.sprite.x : attacker.sprite.x;
+    const toY = target.sprite ? target.sprite.y : attacker.sprite.y;
+    this._fireProjectileToPoint(attacker, toX, toY);
+  }
+
+  _fireProjectileToPoint(attacker, toX, toY) {
     const scene = this._scene;
     const fromX = attacker.sprite.x;
     const fromY = attacker.sprite.y;
-    const toX   = target.sprite ? target.sprite.x : fromX;
-    const toY   = target.sprite ? target.sprite.y : fromY;
-
-    const color    = TEAM_BORDER_COLOR[attacker.team] ?? 0xffffff;
-    const duration = Math.max(
-      PROJECTILE_MIN_DURATION_MS,
-      this._tileDist(attacker, target) * PROJECTILE_MS_PER_TILE
-    );
+    const color = TEAM_BORDER_COLOR[attacker.team] ?? 0xffffff;
+    const dx    = (toX - fromX) / TILE_SIZE;
+    const dy    = (toY - fromY) / TILE_SIZE;
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    const duration = Math.max(PROJECTILE_MIN_DURATION_MS, dist * PROJECTILE_MS_PER_TILE);
 
     const ball = scene.add.circle(fromX, fromY, PROJECTILE_RADIUS, color)
       .setDepth(DEPTH_PROJECTILE);
@@ -154,12 +159,24 @@ export default class CombatSystem {
   }
 
   _tryAttackBase(unit, now) {
+    unit.pause();
+
     const atkMs = ATK_MS[unit.stats.atkSpeed] ?? 1000;
     if (now - unit._lastAtkTime < atkMs) return;
 
     unit._lastAtkTime = now;
-    const dmg         = Math.max(MIN_DAMAGE, unit.stats.dmg - BASE_ARMOR);
 
+    if (unit.stats.range > 1) {
+      const targetBase = unit.team === 'npc' ? 'player' : 'npc';
+      const [baseCol, baseRow] = targetBase === 'player'
+        ? [PLAYER_BASE_COL, PLAYER_BASE_ROW]
+        : [NPC_BASE_COL, NPC_BASE_ROW];
+      const toX = BOARD_OFFSET_X + baseCol * TILE_SIZE + TILE_SIZE / 2;
+      const toY = BOARD_OFFSET_Y + baseRow * TILE_SIZE + TILE_SIZE / 2;
+      this._fireProjectileToPoint(unit, toX, toY);
+    }
+
+    const dmg        = Math.max(MIN_DAMAGE, unit.stats.dmg - BASE_ARMOR);
     const targetBase = unit.team === 'npc' ? 'player' : 'npc';
     this.baseHp[targetBase] = Math.max(0, this.baseHp[targetBase] - dmg);
     this._onBaseHpChanged(this.baseHp);

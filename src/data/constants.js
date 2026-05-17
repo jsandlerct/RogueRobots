@@ -40,7 +40,10 @@ export const ESCALATION = [
 
 // ── Economy ───────────────────────────────────────────────────────────────────
 export const STARTING_RESOURCES      = { metal: 3, silicon: 0, batteries: 0 };
-export const TOKEN_SPAWN_INTERVAL_MS = 8000;
+export const TOKEN_SPAWN_INTERVAL_MS  = 10000;
+export const NPC_PURCHASE_INTERVAL_MS = 5000;
+export const TOKEN_DROP_PROB_SMALL    = 0.40;  // amount 1
+export const TOKEN_DROP_PROB_MEDIUM   = 0.50;  // amount 2; remaining 0.10 = large (amount 3)
 
 // ── Combat ────────────────────────────────────────────────────────────────────
 export const ATK_MS        = { slow: 2000, medium: 1000, fast: 500 };
@@ -69,9 +72,9 @@ export const PROJECTILE_MIN_DURATION_MS = 80;
 // ── Resource tokens ───────────────────────────────────────────────────────────
 export const TOKEN_COLOR = { battery: 0x00ddff, silicon: 0xcc44ff };
 export const TOKEN_SIZES = [
-  { amount: 1, px: 8  },
-  { amount: 2, px: 13 },
-  { amount: 3, px: 18 },
+  { amount: 1, px: 24 },
+  { amount: 2, px: 31 },
+  { amount: 3, px: 34 },
 ];
 
 // ── Map / tile colors ─────────────────────────────────────────────────────────
@@ -129,20 +132,35 @@ export const ROUND_END_PANEL_ALPHA = 0.9;
 export const FEEDBACK_DURATION_MS = 1200;
 
 // ── Draft screen ──────────────────────────────────────────────────────────────
-export const DRAFT_CARD_W           = 228;
-export const DRAFT_CARD_H           = 100;
-export const DRAFT_CARD_PAD         = 6;
-export const DRAFT_CARD_ROW_Y       = [130, 240];
-export const DRAFT_SLOT_Y           = 390;
+export const DRAFT_CARD_W           = 128;  // 4 cols: (552 - 5×8) / 4
+export const DRAFT_CARD_H           = 62;
+export const DRAFT_CARD_PAD         = 8;
+export const DRAFT_CARD_ROW_Y       = [122, 189, 256, 323, 390];
+export const DRAFT_SLOT_Y           = 470;
 export const DRAFT_SLOT_W           = 56;
 export const DRAFT_SLOT_H           = 50;
 export const DRAFT_SLOT_MARGIN      = 3;
-export const DRAFT_CONFIRM_Y        = 458;
+export const DRAFT_CONFIRM_Y        = 538;
 export const DRAFT_CONFIRM_BTN_W    = 160;
 export const DRAFT_CONFIRM_BTN_H    = 36;
 export const DRAFT_COLOR_BG         = 0x0d0d1a;
 export const DRAFT_COLOR_SLOT_EMPTY = 0x111122;
 export const DRAFT_COLOR_CONFIRM_BG = 0x334455;
+export const DRAFT_COLOR_LOCKED     = 0x1a1a2a;
 
 // ── Pathfinding ───────────────────────────────────────────────────────────────
 export const PATHFINDING_ITERATIONS = 10000;
+
+// ── Intro scene ───────────────────────────────────────────────────────────────
+export const INTRO_FADE_MS         = 1500;
+export const INTRO_HOLD_MS         = 3000;
+export const INTRO_PULSE_MS        = 800;
+export const INTRO_TEXT_MAX_W      = 490;
+export const INTRO_LINE_SPACING    = 7;
+export const INTRO_PARA_GAP        = 12;
+export const INTRO_FONT            = "'Share Tech Mono', 'Courier New', monospace";
+export const INTRO_FONT_SIZE_QUOTE = '13px';
+export const INTRO_FONT_SIZE_BODY  = '15px';
+export const INTRO_COLOR_QUOTE     = '#cccccc';
+export const INTRO_COLOR_STORY     = '#ffffff';
+export const INTRO_COLOR_PROMPT    = '#00ff88';

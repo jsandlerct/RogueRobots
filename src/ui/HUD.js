@@ -21,6 +21,12 @@ export default class HUD {
       wordWrap: { width: SIDE_PANEL_W - 4 },
     }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
+    // NPC resources — left side panel, one tile below HP
+    this._npcResourceText = scene.add.text(LEFT_PANEL_CX, tileY(NPC_BASE_ROW) + TILE_SIZE, '', {
+      fontSize: '10px', color: '#ffaa66', fontFamily: 'monospace', align: 'center',
+      wordWrap: { width: SIDE_PANEL_W - 4 },
+    }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
+
     // Player HP — right side panel, centred on player base tile row
     this._playerHpText = scene.add.text(RIGHT_PANEL_CX, tileY(PLAYER_BASE_ROW), '', {
       fontSize: '11px', color: '#8899ff', fontFamily: 'monospace', align: 'center',
@@ -44,6 +50,10 @@ export default class HUD {
   updateBaseHp(baseHp) {
     this._npcHpText.setText(`HP\n${baseHp.npc}`);
     this._playerHpText.setText(`HP\n${baseHp.player}`);
+  }
+
+  updateNpcResources(res) {
+    this._npcResourceText.setText(`M:${res.metal}\nSi:${res.silicon}\nB:${res.batteries}`);
   }
 
   updateResources(res) {

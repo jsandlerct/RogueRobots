@@ -51,7 +51,7 @@
     "name": "Scavenger",
     "color": "#aa9900",
     "isRobot": true,
-    "cost": { "metal": 3, "silicon": 1, "batteries": 0 },
+    "cost": { "metal": 1, "silicon": 1, "batteries": 0 },
     "spawn": "Drop",
     "hp": 1,
     "dmg": 1,
@@ -60,6 +60,7 @@
     "moveSpeed": "fast",
     "atkSpeed": "slow",
     "specialBehavior": "scavenger",
+    "hideOutline": true,
     "cooldown": 5,
     "unlockLevel": 1
   },

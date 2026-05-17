@@ -31,7 +31,7 @@ export default class Unit {
       if (team === 'npc') this.sprite.setTint(NPC_UNIT_TINT);
       this.sprite.play(`${atlasKey}_walk`);
 
-      if (this.sprite.preFX) {
+      if (this.sprite.preFX && !this.stats.hideOutline) {
         this.sprite.preFX.addOutline(TEAM_BORDER_PX, TEAM_BORDER_COLOR[team]);
       }
 

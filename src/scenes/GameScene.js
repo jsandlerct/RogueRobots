@@ -11,9 +11,11 @@ import {
   COLOR_NPC_BASE_TINT, COLOR_PLAYER_BASE_TINT,
   DEPTH_BASE_SPRITE, DEPTH_HUD,
   DEPTH_NPC_LOADOUT_BG, DEPTH_NPC_LOADOUT_TEXT,
+  DEPTH_COOLDOWN_OVERLAY, DEPTH_COOLDOWN_TEXT,
   DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
   ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
-  TOKEN_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
+  TOKEN_SPAWN_INTERVAL_MS, TOKEN_DROP_PROB_SMALL, TOKEN_DROP_PROB_MEDIUM,
+  NPC_PURCHASE_INTERVAL_MS, FEEDBACK_DURATION_MS,
 } from '../data/constants.js';
 import MapGenerator from '../map/MapGenerator.js';
 import PathfindingSystem from '../systems/PathfindingSystem.js';
@@ -46,17 +48,18 @@ export default class GameScene extends Phaser.Scene {
 
   create() {
     const mapInstance = MapGenerator.selectArchetype();
-    this._grid    = mapInstance.getGrid();
-    const mapPaths = mapInstance.getPaths ? mapInstance.getPaths() : null;
+    this._grid     = mapInstance.getGrid();
+    this._mapPaths = mapInstance.getPaths ? mapInstance.getPaths() : null;
 
     this._renderNPCLoadoutBar();
     this._renderGrid(this._grid);
     this._renderDivideLine();
     this._renderBaseLabels();
 
-    this.units          = [];
-    this._tokens        = [];
-    this._unitCooldowns = new Map();
+    this.units           = [];
+    this._tokens         = [];
+    this._unitCooldowns  = new Map();
+    this._npcCooldowns   = new Map();
     this._roundStartTime = null;
     this._roundOver      = false;
 
@@ -80,7 +83,7 @@ export default class GameScene extends Phaser.Scene {
     this._pathfinding = new PathfindingSystem(this._grid);
 
     this._spawnSystem = new SpawnSystem(
-      this, this._pathfinding, mapPaths,
+      this, this._pathfinding, this._mapPaths,
       (team, path) => this._onUnitSpawned(team, path)
     );
     this._spawnSystem.start();
@@ -92,6 +95,13 @@ export default class GameScene extends Phaser.Scene {
       callbackScope: this,
     });
     this._spawnToken();
+
+    this.time.addEvent({
+      delay: NPC_PURCHASE_INTERVAL_MS,
+      loop: true,
+      callback: this._npcPurchaseTick,
+      callbackScope: this,
+    });
 
     this.input.on('pointerdown', (pointer) => {
       const inBoard =
@@ -109,8 +119,11 @@ export default class GameScene extends Phaser.Scene {
     if (this._roundStartTime === null) this._roundStartTime = this.time.now;
 
     this._hud.updateTimer(this.time.now - this._roundStartTime);
+    this._hud.updateNpcResources(this._economy.npcResources);
+    this._refreshEconomyUI();
     this._combat.update();
     this._loadoutBar.refreshCooldowns(this._unitCooldowns, this.time.now);
+    this._refreshNpcLoadoutBar();
   }
 
   // ── Unit spawning (auto) ───────────────────────────────────────────────────
@@ -290,9 +303,13 @@ export default class GameScene extends Phaser.Scene {
       }
     }
     if (candidates.length === 0) return;
-    const tile = Phaser.Utils.Array.GetRandom(candidates);
-    const type = Math.random() < 0.5 ? 'battery' : 'silicon';
-    this._tokens.push(new ResourceToken(this, tile.col, tile.row, type));
+    const tile   = Phaser.Utils.Array.GetRandom(candidates);
+    const type   = Math.random() < 0.5 ? 'battery' : 'silicon';
+    const r      = Math.random();
+    const amount = r < TOKEN_DROP_PROB_SMALL ? 1
+                 : r < TOKEN_DROP_PROB_SMALL + TOKEN_DROP_PROB_MEDIUM ? 2
+                 : 3;
+    this._tokens.push(new ResourceToken(this, tile.col, tile.row, type, amount));
   }
 
   _attachTokenCallback(unit, team) {
@@ -305,6 +322,7 @@ export default class GameScene extends Phaser.Scene {
       if (!token.alive || token.col !== col || token.row !== row) continue;
       token.collect();
       if (team === 'player') this._economy.collectToken(token.type, token.amount);
+      else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
       collected = true;
     }
     this._tokens = this._tokens.filter(t => t.alive);
@@ -316,11 +334,51 @@ export default class GameScene extends Phaser.Scene {
         this._combat._units = this._combat._units.filter(u => u !== unit);
       }
     }
+    if (collected && team === 'npc') {
+      this._hud.updateNpcResources(this._economy.npcResources);
+    }
   }
 
   _refreshEconomyUI() {
     this._hud.updateResources(this._economy.playerResources);
     this._loadoutBar.refreshAffordability(this._economy.playerResources);
+  }
+
+  // ── NPC purchasing ────────────────────────────────────────────────────────
+
+  _npcPurchaseTick() {
+    const now = this.time.now;
+    const eligible = NPC_ROSTER
+      .map((unitName, i) => ({ unitName, i, stats: unitsData.find(u => u.name === unitName) }))
+      .filter(({ i, stats }) => {
+        const cooldownMs = (stats.cooldown ?? 0) * 1000;
+        return now - (this._npcCooldowns.get(i) ?? 0) >= cooldownMs
+            && this._economy.canAffordNpc(stats.cost);
+      });
+    if (eligible.length === 0) return;
+    const pick = eligible[Math.floor(Math.random() * eligible.length)];
+    this._economy.spendNpc(pick.stats.cost);
+    this._npcCooldowns.set(pick.i, now);
+    this._hud.updateNpcResources(this._economy.npcResources);
+    this._deployNpcUnit(pick.unitName, pick.stats);
+  }
+
+  async _deployNpcUnit(unitName, stats) {
+    let path;
+    const lanes = this._mapPaths?.npc;
+    if (lanes?.length > 0) {
+      path = lanes[Math.floor(Math.random() * lanes.length)];
+    } else {
+      path = await this._pathfinding.findPath(
+        NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW
+      );
+    }
+    if (!path || path.length <= 1) return;
+    const unit = new Unit(this, path[0].x, path[0].y, unitName, 'npc');
+    this._attachTokenCallback(unit, 'npc');
+    unit.followPath(this._trimPathToRange(path, stats.range));
+    this._combat.addUnit(unit);
+    this.units.push(unit);
   }
 
   // ── Round end + Play Again ────────────────────────────────────────────────
@@ -364,41 +422,82 @@ export default class GameScene extends Phaser.Scene {
 
   _renderNPCLoadoutBar() {
     const gfx = this.add.graphics();
-    // Dark background behind the top bar (full canvas width)
     gfx.fillStyle(0x0d0d1a, 1);
     gfx.fillRect(0, 0, BOARD_OFFSET_X + BOARD_W + BOARD_OFFSET_X, NPC_LOADOUT_BAR_H);
-    // Subtle separator line at the bottom of the bar
     gfx.lineStyle(1, 0x334455, 0.8);
     gfx.lineBetween(BOARD_OFFSET_X, NPC_LOADOUT_BAR_H - 1, BOARD_OFFSET_X + BOARD_W, NPC_LOADOUT_BAR_H - 1);
 
-    // "ENEMY:" label sits in the left side panel, not inline with the slots
     this.add.text(4, NPC_LOADOUT_BAR_H / 2, 'ENEMY\nROSTER', {
       fontSize: '8px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: 56 },
     }).setOrigin(0.5, 0.5).setX(30).setDepth(DEPTH_NPC_LOADOUT_TEXT);
 
-    // NPC unit slots — aligned with the player loadout bar below
+    this._npcBarSlots = [];
+
+    // Y positions for the three possible cost rows within the slot
+    const RES_Y1 = 30;
+    const RES_Y2 = 39;
+    const RES_Y3 = 48;
+
     NPC_ROSTER.forEach((unitName, i) => {
       const stats     = unitsData.find(u => u.name === unitName);
       const fillColor = parseInt(stats.color.slice(1), 16);
       const cx = LOADOUT_BAR_X + i * NPC_SLOT_W + NPC_SLOT_W / 2;
       const cy = NPC_LOADOUT_BAR_H / 2;
 
-      // Slot background
       this.add.rectangle(cx, cy, NPC_SLOT_W - 2, NPC_SLOT_H - 2, fillColor)
         .setStrokeStyle(2, NPC_UNIT_TINT)
         .setDepth(DEPTH_NPC_LOADOUT_BG);
 
-      // Unit name
-      this.add.text(cx, cy - 7, unitName, {
+      this.add.text(cx, 5, unitName, {
         fontSize: '8px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
-      }).setOrigin(0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+        wordWrap: { width: NPC_SLOT_W - 4 },
+      }).setOrigin(0.5, 0).setDepth(DEPTH_NPC_LOADOUT_TEXT);
 
-      // Stats line
-      this.add.text(cx, cy + 6, `HP:${stats.hp} D:${stats.dmg}`, {
-        fontSize: '7px', color: '#cccccc', fontFamily: 'monospace', align: 'center',
-      }).setOrigin(0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+      const { metal: m, silicon: s, batteries: b } = stats.cost;
+      const resYs = [RES_Y1, RES_Y2, RES_Y3];
+      let resIdx = 0;
+      const makeResText = (str) => this.add.text(cx, resYs[resIdx++], str, {
+        fontSize: '8px', color: '#dddddd', fontFamily: 'monospace', align: 'center',
+      }).setOrigin(0.5, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+
+      const metalText     = m ? makeResText(`M:${m}`)   : null;
+      const siliconText   = s ? makeResText(`Si:${s}`)  : null;
+      const batteriesText = b ? makeResText(`B:${b}`)   : null;
+      if (!m && !s && !b) {
+        this.add.text(cx, RES_Y2, 'Free', {
+          fontSize: '8px', color: '#88cc88', fontFamily: 'monospace', align: 'center',
+        }).setOrigin(0.5, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+      }
+
+      const cooldownOverlay = this.add
+        .rectangle(cx, cy, NPC_SLOT_W - 2, NPC_SLOT_H - 2, 0x000000, 0.65)
+        .setDepth(DEPTH_COOLDOWN_OVERLAY).setVisible(false);
+      const cooldownText = this.add.text(cx, cy, '', {
+        fontSize: '13px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(DEPTH_COOLDOWN_TEXT).setVisible(false);
+
+      this._npcBarSlots.push({ unitName, index: i, metalText, siliconText, batteriesText, cooldownOverlay, cooldownText });
     });
+  }
+
+  _refreshNpcLoadoutBar() {
+    const now = this.time.now;
+    const res = this._economy.npcResources;
+    for (const slot of this._npcBarSlots) {
+      const stats      = unitsData.find(u => u.name === slot.unitName);
+      const cooldownMs = (stats.cooldown ?? 0) * 1000;
+      const elapsed    = now - (this._npcCooldowns.get(slot.index) ?? 0);
+      const onCooldown = elapsed < cooldownMs;
+      slot.cooldownOverlay.setVisible(onCooldown);
+      slot.cooldownText.setVisible(onCooldown);
+      if (onCooldown) slot.cooldownText.setText(Math.ceil((cooldownMs - elapsed) / 1000) + 's');
+
+      const { metal: m, silicon: s, batteries: b } = stats.cost;
+      if (slot.metalText)     slot.metalText.setColor(res.metal     >= (m || 0) ? '#dddddd' : '#ff4444');
+      if (slot.siliconText)   slot.siliconText.setColor(res.silicon   >= (s || 0) ? '#dddddd' : '#ff4444');
+      if (slot.batteriesText) slot.batteriesText.setColor(res.batteries >= (b || 0) ? '#dddddd' : '#ff4444');
+    }
   }
 
   _renderGrid(grid) {

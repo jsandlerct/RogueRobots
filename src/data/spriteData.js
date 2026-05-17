@@ -43,25 +43,33 @@ function buildBaseAtlas() {
 }
 
 export const SPRITE_ATLAS = {
-  grunt:    buildAtlas(...LARGE),
-  punchbot: buildAtlas(...LARGE),
-  zapbot:   buildAtlas(...LARGE),
-  tankbot:  buildAtlas(...SMALL),
-  base:     buildBaseAtlas(),
+  grunt:     buildAtlas(...LARGE),
+  punchbot:  buildAtlas(...LARGE),
+  zapbot:    buildAtlas(...LARGE),
+  floatbot:  buildAtlas(...LARGE),
+  tankbot:   buildAtlas(...SMALL),
+  scavenger: buildAtlas(...SMALL),
+  boombot:   buildAtlas(...SMALL),
+  boomtrap:  buildAtlas(...SMALL),
+  base:      buildBaseAtlas(),
 };
 
 // Maps unit name (lowercase) to its atlas key. Units not listed use colored rects.
 export const UNIT_SPRITE_KEY = {
-  Grunt:    'grunt',
-  Punchbot: 'punchbot',
-  Zapbot:   'zapbot',
-  Tankbot:  'tankbot',
+  Grunt:     'grunt',
+  Punchbot:  'punchbot',
+  Zapbot:    'zapbot',
+  Floatbot:  'floatbot',
+  Tankbot:   'tankbot',
+  Scavenger: 'scavenger',
+  Boombot:   'boombot',
+  Boomtrap:  'boomtrap',
 };
 
 // Animation definitions — created once in BootScene after assets are loaded.
 export const ANIM_DEFS = [
   // unit walk/attack/die animations
-  ...['grunt', 'punchbot', 'zapbot', 'tankbot'].flatMap(key => [
+  ...['grunt', 'punchbot', 'zapbot', 'floatbot', 'tankbot', 'scavenger', 'boombot', 'boomtrap'].flatMap(key => [
     { key: `${key}_walk`,   atlas: key, prefix: 'walk_',   start: 0, end: 5, frameRate: 8,  repeat: -1 },
     { key: `${key}_attack`, atlas: key, prefix: 'attack_', start: 0, end: 4, frameRate: 10, repeat: -1 },
     { key: `${key}_die`,    atlas: key, prefix: 'die_',    start: 0, end: 5, frameRate: 8,  repeat: 0  },
