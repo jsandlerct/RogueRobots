@@ -82,6 +82,7 @@ export default class CombatSystem {
   }
 
   _tryAttack(attacker, target, now) {
+    if (attacker.stats.atkSpeed === 'none') return;
     const atkMs = ATK_MS[attacker.stats.atkSpeed] ?? 1000;
     if (now - attacker._lastAtkTime < atkMs) return;
 

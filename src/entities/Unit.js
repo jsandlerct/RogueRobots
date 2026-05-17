@@ -4,7 +4,7 @@ import {
   DEPTH_UNIT_SPRITE, DEPTH_UNIT_OUTLINE,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
-import { UNIT_SPRITE_KEY } from '../data/spriteData.js';
+import { UNIT_SPRITE_KEY, UNIT_SPRITE_TINT } from '../data/spriteData.js';
 
 export default class Unit {
   constructor(scene, col, row, unitName, team) {
@@ -28,8 +28,16 @@ export default class Unit {
         .setDisplaySize(UNIT_SIZE, UNIT_SIZE)
         .setDepth(DEPTH_UNIT_SPRITE);
 
-      if (team === 'npc') this.sprite.setTint(NPC_UNIT_TINT);
-      this.sprite.play(`${atlasKey}_walk`);
+      if (team === 'npc') {
+        this.sprite.setTint(NPC_UNIT_TINT);
+      } else if (UNIT_SPRITE_TINT[unitName] !== undefined) {
+        this.sprite.setTint(UNIT_SPRITE_TINT[unitName]);
+      }
+      if (this.stats.moveSpeed === 'none') {
+        this.sprite.setFrame('walk_0');
+      } else {
+        this.sprite.play(`${atlasKey}_walk`);
+      }
 
       if (this.sprite.preFX && !this.stats.hideOutline) {
         this.sprite.preFX.addOutline(TEAM_BORDER_PX, TEAM_BORDER_COLOR[team]);
@@ -119,7 +127,11 @@ export default class Unit {
     if (!this.paused) return;
     this.paused = false;
     if (this._useSprite && this._atlasKey) {
-      this.sprite.play(`${this._atlasKey}_walk`);
+      if (this.stats.moveSpeed === 'none') {
+        this.sprite.stop().setFrame('walk_0');
+      } else {
+        this.sprite.play(`${this._atlasKey}_walk`);
+      }
     }
     if (this._tweenWasPaused && this._tween) {
       this._tween.resume();

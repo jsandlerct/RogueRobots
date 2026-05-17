@@ -1,6 +1,10 @@
 // src/data/constants.js — single source of truth for all game constants.
 // No other file may define named constants or use bare magic numbers.
 
+// ── Test mode ─────────────────────────────────────────────────────────────────
+export const TESTMODE            = 1;   // default on/off (toggled at runtime via DraftScene)
+export const TESTMODE_RESOURCES  = { metal: 30, silicon: 30, batteries: 30 };
+
 // ── Grid ──────────────────────────────────────────────────────────────────────
 export const COLS      = 12;
 export const ROWS      = 16;
@@ -52,7 +56,7 @@ export const RANGE_TOLERANCE   = 0.5;
 export const BOOMBOT_AOE_RADIUS = 1.5;
 
 // ── Unit movement ─────────────────────────────────────────────────────────────
-export const MOVE_MS = { slow: 500, medium: 300, fast: 150, none: 0 };
+export const MOVE_MS = { veryslow: 1000, slow: 750, medium: 300, fast: 150, none: 0 };
 
 // ── Unit rendering ────────────────────────────────────────────────────────────
 export const UNIT_SIZE         = TILE_SIZE - 8;   // 4 px inset per side within a tile
@@ -143,6 +147,7 @@ export const DRAFT_SLOT_MARGIN      = 3;
 export const DRAFT_CONFIRM_Y        = 538;
 export const DRAFT_CONFIRM_BTN_W    = 160;
 export const DRAFT_CONFIRM_BTN_H    = 36;
+export const DRAFT_TESTMODE_Y       = 590;
 export const DRAFT_COLOR_BG         = 0x0d0d1a;
 export const DRAFT_COLOR_SLOT_EMPTY = 0x111122;
 export const DRAFT_COLOR_CONFIRM_BG = 0x334455;

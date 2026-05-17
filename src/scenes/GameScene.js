@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  COLS, ROWS, TILE_SIZE, TILE_PAD, TILE_WALKABLE,
+  COLS, ROWS, TILE_SIZE, TILE_PAD, TILE_WALKABLE, TESTMODE_RESOURCES,
   BOARD_W, BOARD_H, BOARD_OFFSET_X, BOARD_OFFSET_Y,
   NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW,
   DIVIDE_ROW, BASE_HP, BASE_SPRITE_SIZE,
@@ -43,7 +43,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init(data) {
-    this._loadout = data?.loadout ?? DEFAULT_LOADOUT;
+    this._loadout  = data?.loadout  ?? DEFAULT_LOADOUT;
+    this._testMode = data?.testMode ?? false;
   }
 
   create() {
@@ -63,7 +64,7 @@ export default class GameScene extends Phaser.Scene {
     this._roundStartTime = null;
     this._roundOver      = false;
 
-    this._economy = new EconomySystem();
+    this._economy = new EconomySystem(this._testMode ? TESTMODE_RESOURCES : undefined);
     this._combat  = new CombatSystem(
       this,
       this._economy,
@@ -129,7 +130,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Unit spawning (auto) ───────────────────────────────────────────────────
 
   _onUnitSpawned(team, path) {
-    const unit = new Unit(this, path[0].x, path[0].y, 'Grunt', team);
+    const unit = new Unit(this, path[0].x, path[0].y, 'Bug', team);
     this._attachTokenCallback(unit, team);
     unit.followPath(this._trimPathToRange(path, unit.stats.range));
     this._combat.addUnit(unit);
@@ -206,12 +207,8 @@ export default class GameScene extends Phaser.Scene {
     const stats    = unitsData.find(u => u.name === unitName);
     const walkable = this._grid[row][col] === TILE_WALKABLE;
 
-    if (stats.isRobot && !walkable) {
-      this._showFeedback('Robots → path tiles only');
-      return;
-    }
-    if (!stats.isRobot && walkable) {
-      this._showFeedback('Towers → wall tiles only');
+    if (!walkable) {
+      this._showFeedback('Drop to path tiles only');
       return;
     }
 
@@ -247,11 +244,11 @@ export default class GameScene extends Phaser.Scene {
     } else if (stats.specialBehavior === 'floatbot_fly') {
       const path = this._straightLinePath(col, row, NPC_BASE_COL, NPC_BASE_ROW);
       unit.followPath(this._trimPathToRange(path, unit.stats.range));
-    } else if (stats.isRobot) {
+    } else if (stats.moveSpeed !== 'none') {
       const path = await this._pathfinding.findPath(col, row, NPC_BASE_COL, NPC_BASE_ROW);
       if (path && path.length > 1) unit.followPath(this._trimPathToRange(path, unit.stats.range));
     }
-    // Stationary towers/traps don't move; CombatSystem handles their attacks
+    // Stationary units (moveSpeed "none") don't move; CombatSystem handles their attacks
   }
 
   _straightLinePath(fromCol, fromRow, toCol, toRow) {

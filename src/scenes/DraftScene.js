@@ -1,24 +1,21 @@
 import Phaser from 'phaser';
 import {
   CANVAS_W, CANVAS_H,
-  STARTING_RESOURCES, LOADOUT_NUM_SLOTS,
+  STARTING_RESOURCES, TESTMODE_RESOURCES, LOADOUT_NUM_SLOTS, TESTMODE,
   DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_CARD_PAD, DRAFT_CARD_ROW_Y,
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
-  DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H,
+  DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
   DRAFT_COLOR_BG, DRAFT_COLOR_SLOT_EMPTY, DRAFT_COLOR_CONFIRM_BG, DRAFT_COLOR_LOCKED,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
 import { UNIT_SPRITE_KEY } from '../data/spriteData.js';
 
-// Grunt auto-spawns for both teams — never in the draft pool
-const AVAILABLE = unitsData.filter(u => u.unlockLevel === 1 && u.name !== 'Grunt');
-
-// 5 rows × 4 cols = 20 total slots; slots beyond AVAILABLE.length show as LOCKED
+// 5 rows × 4 cols = 20 total slots; slots beyond available count show as LOCKED
 const TOTAL_SLOTS = 20;
-const COLS        = 4;
+const DRAFT_COLS  = 4;
 
 // X left-edge of each column
-const CARD_COL_X = Array.from({ length: COLS }, (_, c) =>
+const CARD_COL_X = Array.from({ length: DRAFT_COLS }, (_, c) =>
   DRAFT_CARD_PAD + c * (DRAFT_CARD_W + DRAFT_CARD_PAD)
 );
 
@@ -30,9 +27,20 @@ export default class DraftScene extends Phaser.Scene {
     super({ key: 'DraftScene' });
   }
 
+  init(data) {
+    // Preserve testMode across restarts; fall back to the constant default
+    this._testMode = data?.testMode ?? (TESTMODE === 1);
+  }
+
+  _available() {
+    return this._testMode
+      ? unitsData.filter(u => u.unlockLevel !== null && u.name !== 'Bug')
+      : unitsData.filter(u => u.unlockLevel === 1 && u.name !== 'Bug');
+  }
+
   create() {
     this._counts      = {};
-    AVAILABLE.forEach(u => { this._counts[u.name] = 0; });
+    this._available().forEach(u => { this._counts[u.name] = 0; });
 
     this._slotRects   = [];
     this._slotLabels  = [];
@@ -45,6 +53,7 @@ export default class DraftScene extends Phaser.Scene {
     this._buildUnitCards();
     this._buildLoadoutSlots();
     this._buildConfirmButton();
+    this._buildTestModeToggle();
     this._refresh();
     this._startCardAnimCycle();
   }
@@ -63,29 +72,28 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '13px', color: '#aaaacc', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
-    const resStr =
-      `Starting Resources:  M:${STARTING_RESOURCES.metal}` +
-      `  Si:${STARTING_RESOURCES.silicon}` +
-      `  B:${STARTING_RESOURCES.batteries}`;
+    const res    = this._testMode ? TESTMODE_RESOURCES : STARTING_RESOURCES;
+    const resStr = `Starting Resources:  M:${res.metal}  Si:${res.silicon}  B:${res.batteries}`;
     this.add.text(cx, 64, resStr, {
       fontSize: '10px', color: '#ffdd88', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
-    this.add.text(cx, 86, '── SELECT UNITS (Lvl 1 unlocked) ──', {
-      fontSize: '9px', color: '#556677', fontFamily: 'monospace',
+    const subtitle = this._testMode ? '── ALL UNITS UNLOCKED (TEST MODE) ──' : '── SELECT UNITS (Lvl 1 unlocked) ──';
+    this.add.text(cx, 86, subtitle, {
+      fontSize: '9px', color: this._testMode ? '#ff9900' : '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
   }
 
   _buildUnitCards() {
+    const available = this._available();
     for (let i = 0; i < TOTAL_SLOTS; i++) {
-      const col  = i % COLS;
-      const row  = Math.floor(i / COLS);
+      const col  = i % DRAFT_COLS;
+      const row  = Math.floor(i / DRAFT_COLS);
       const x    = CARD_COL_X[col];
       const y    = DRAFT_CARD_ROW_Y[row];
-      const unit = AVAILABLE[i] ?? null;
+      const unit = available[i] ?? null;
 
       if (!unit) {
-        // Empty future slot — plain LOCKED box
         this.add.rectangle(x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_COLOR_LOCKED)
           .setDepth(1);
         this.add.text(x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, 'LOCKED', {
@@ -94,19 +102,19 @@ export default class DraftScene extends Phaser.Scene {
         continue;
       }
 
-      // Available unit card
       const cardColor = parseInt(unit.color.slice(1), 16);
       this.add.rectangle(x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, DRAFT_CARD_W, DRAFT_CARD_H, cardColor)
         .setDepth(1);
 
-      // Animated sprite — right side, vertically centred
       const atlasKey = UNIT_SPRITE_KEY[unit.name];
       if (atlasKey && this.textures.exists(atlasKey)) {
         const spr = this.add.sprite(x + DRAFT_CARD_W - 26, y + DRAFT_CARD_H / 2, atlasKey, 'walk_0')
           .setDisplaySize(48, 48)
           .setDepth(2);
-        spr.play(`${atlasKey}_walk`);
-        this._cardSprites.push({ spr, atlasKey });
+        if (unit.moveSpeed !== 'none') {
+          spr.play(`${atlasKey}_walk`);
+          this._cardSprites.push({ spr, atlasKey });
+        }
       }
 
       this.add.text(x + 6, y + 5, unit.name.toUpperCase(), {
@@ -192,11 +200,26 @@ export default class DraftScene extends Phaser.Scene {
     this._confirmBtn.on('pointerdown', () => this._confirm());
   }
 
+  _buildTestModeToggle() {
+    const cx      = CANVAS_W / 2;
+    const checked = this._testMode ? '[X]' : '[ ]';
+    const label   = `${checked} TEST MODE`;
+    const color   = this._testMode ? '#ff9900' : '#556677';
+
+    const btn = this.add.text(cx, DRAFT_TESTMODE_Y, label, {
+      fontSize: '11px', color, fontFamily: 'monospace',
+    }).setOrigin(0.5, 0).setDepth(2).setInteractive({ useHandCursor: true });
+
+    btn.on('pointerdown', () => {
+      this.scene.restart({ testMode: !this._testMode });
+    });
+  }
+
   get _total() { return Object.values(this._counts).reduce((a, b) => a + b, 0); }
 
   _loadout() {
     const result = [];
-    for (const u of AVAILABLE) {
+    for (const u of this._available()) {
       for (let i = 0; i < this._counts[u.name]; i++) result.push(u.name);
     }
     return result;
@@ -223,7 +246,7 @@ export default class DraftScene extends Phaser.Scene {
 
   _confirm() {
     if (this._total === 0) return;
-    this.scene.start('GameScene', { loadout: this._loadout() });
+    this.scene.start('GameScene', { loadout: this._loadout(), testMode: this._testMode });
   }
 
   _refresh() {

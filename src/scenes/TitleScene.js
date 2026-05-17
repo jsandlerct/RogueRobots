@@ -7,19 +7,16 @@ export default class TitleScene extends Phaser.Scene {
   }
 
   create() {
-    this.add.rectangle(CANVAS_W / 2, CANVAS_H / 2, CANVAS_W, CANVAS_H, 0x000000);
+    const img = this.add.image(CANVAS_W / 2, CANVAS_H / 2, 'titleScreen');
+    const scaleX = CANVAS_W / img.width;
+    const scaleY = CANVAS_H / img.height;
+    img.setScale(Math.min(scaleX, scaleY));
 
-    this.add.text(CANVAS_W / 2, CANVAS_H / 2 - 30, 'ROGUE ROBOTS', {
-      fontFamily: INTRO_FONT,
-      fontSize: '36px',
-      color: '#00ff88',
-    }).setOrigin(0.5);
-
-    this.add.text(CANVAS_W / 2, CANVAS_H / 2 + 30, '[ Press any key or tap to play ]', {
+    this.add.text(CANVAS_W / 2, CANVAS_H - 20, '[ Press any key or tap to play ]', {
       fontFamily: INTRO_FONT,
       fontSize: '13px',
       color: '#cccccc',
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 1);
 
     this.input.keyboard.once('keydown', () => this.scene.start('BootScene'));
     this.input.once('pointerdown', () => this.scene.start('BootScene'));

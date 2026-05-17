@@ -1,8 +1,8 @@
 import { STARTING_RESOURCES } from '../data/constants.js';
 
 export default class EconomySystem {
-  constructor() {
-    this.playerResources = { ...STARTING_RESOURCES };
+  constructor(startingResources) {
+    this.playerResources = { ...(startingResources ?? STARTING_RESOURCES) };
     this.npcResources    = { metal: 0, silicon: 0, batteries: 0 };
   }
 

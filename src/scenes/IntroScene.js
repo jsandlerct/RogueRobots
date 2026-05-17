@@ -33,6 +33,10 @@ export default class IntroScene extends Phaser.Scene {
     super({ key: 'IntroScene' });
   }
 
+  preload() {
+    this.load.image('titleScreen', 'assets/images/Rogue Robots Title Screen.png');
+  }
+
   create() {
     this._done = false;
     this.add.rectangle(CANVAS_W / 2, CANVAS_H / 2, CANVAS_W, CANVAS_H, 0x000000);
