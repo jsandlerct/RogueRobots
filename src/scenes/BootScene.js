@@ -20,6 +20,11 @@ export default class BootScene extends Phaser.Scene {
     super({ key: 'BootScene' });
   }
 
+  init(data) {
+    this._character  = data?.character  ?? null;
+    this._slotIndex  = data?.slotIndex  ?? null;
+  }
+
   preload() {
     for (const key of ['grunt', 'punchbot', 'zapbot', 'tankbot', 'scavenger']) {
       this.load.atlas(key, `assets/spritesheets/${key}.png`, SPRITE_ATLAS[key]);
@@ -71,7 +76,7 @@ export default class BootScene extends Phaser.Scene {
       } catch (e) { console.warn(`[Boot] anim ${def.key}:`, e.message); }
     }
 
-    this.scene.start('DraftScene');
+    this.scene.start('DraftScene', { character: this._character, slotIndex: this._slotIndex, floor: 1 });
   }
 
   // Build a corrected atlas data object for sprites whose walk frames have the body

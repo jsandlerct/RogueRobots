@@ -418,11 +418,11 @@ export default class GameScene extends Phaser.Scene {
   _applyPassiveOnKill(col, row) {
     switch (this._passive) {
       case 'improved_scavenging':
-        if (Math.random() < 0.5) this._dropPassiveToken(col, row);
+        if (Math.random() < 0.5) this._awardRandomResource();
         break;
       case 'advanced_scavenging':
       case 'superior_scavenging':
-        this._dropPassiveToken(col, row);
+        this._awardRandomResource();
         break;
       case 'perfected_scavenging':
         this._economy.awardResources({ metal: 2, silicon: 1, batteries: 1 });
@@ -431,11 +431,12 @@ export default class GameScene extends Phaser.Scene {
     }
   }
 
-  _dropPassiveToken(col, row) {
-    const type = Math.random() < 0.5 ? 'battery' : 'silicon';
-    const token = new ResourceToken(this, col, row, type, 1);
-    this._tokens.push(token);
-    this._wakeIdleScavengers();
+  _awardRandomResource() {
+    const res = Math.random() < 0.5
+      ? { batteries: 1 }
+      : { silicon: 1 };
+    this._economy.awardResources(res);
+    this._refreshEconomyUI();
   }
 
   _attachTokenCallback(unit, team) {

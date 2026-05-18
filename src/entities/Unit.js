@@ -18,6 +18,7 @@ export default class Unit {
 
     this.stats = unitsData.find(u => u.name === unitName);
     this.hp    = this.stats.hp;
+    this.maxHp = this.stats.hp;
 
     const cx       = BOARD_OFFSET_X + col * TILE_SIZE + TILE_SIZE / 2;
     const cy       = BOARD_OFFSET_Y + row * TILE_SIZE + TILE_SIZE / 2;

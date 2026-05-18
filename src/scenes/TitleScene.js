@@ -18,7 +18,7 @@ export default class TitleScene extends Phaser.Scene {
       color: '#cccccc',
     }).setOrigin(0.5, 1);
 
-    this.input.keyboard.once('keydown', () => this.scene.start('BootScene'));
-    this.input.once('pointerdown', () => this.scene.start('BootScene'));
+    this.input.keyboard.once('keydown', () => this.scene.start('CharacterSelectScene'));
+    this.input.once('pointerdown', () => this.scene.start('CharacterSelectScene'));
   }
 }

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   CANVAS_W, CANVAS_H,
   STARTING_RESOURCES, TESTMODE_RESOURCES, LOADOUT_NUM_SLOTS, TESTMODE,
+  MAX_FLOORS,
   DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_CARD_PAD, DRAFT_CARD_ROW_Y,
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
   DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
@@ -28,14 +29,21 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   init(data) {
-    // Preserve testMode across restarts; fall back to the constant default
-    this._testMode = data?.testMode ?? (TESTMODE === 1);
+    this._testMode  = data?.testMode  ?? (TESTMODE === 1);
+    this._character = data?.character ?? null;
+    this._slotIndex = data?.slotIndex ?? null;
+    this._floor     = data?.floor     ?? 1;
+  }
+
+  get _unlockedSlots() {
+    if (this._testMode) return LOADOUT_NUM_SLOTS;
+    if (!this._character) return LOADOUT_NUM_SLOTS;
+    return Math.min(this._character.level, LOADOUT_NUM_SLOTS);
   }
 
   _available() {
-    return this._testMode
-      ? unitsData.filter(u => u.unlockLevel !== null && u.name !== 'Bug')
-      : unitsData.filter(u => u.unlockLevel === 1 && u.name !== 'Bug');
+    const maxUnlock = this._testMode ? Infinity : (this._character?.level ?? 1);
+    return unitsData.filter(u => u.unlockLevel !== null && u.unlockLevel <= maxUnlock && u.name !== 'Bug');
   }
 
   create() {
@@ -68,7 +76,8 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '20px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    this.add.text(cx, 42, 'DRAFT YOUR LOADOUT', {
+    const floorLabel = `FLOOR ${this._floor} / ${MAX_FLOORS}  ·  DRAFT YOUR LOADOUT`;
+    this.add.text(cx, 42, floorLabel, {
       fontSize: '13px', color: '#aaaacc', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
@@ -164,23 +173,33 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _buildLoadoutSlots() {
+    const unlocked = this._unlockedSlots;
     this.add.text(CANVAS_W / 2, DRAFT_SLOT_Y - 22, '── YOUR LOADOUT ──', {
       fontSize: '9px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
     for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
       const x = SLOT_START_X + i * (DRAFT_SLOT_W + DRAFT_SLOT_MARGIN);
+      const isLocked = i >= unlocked;
 
       const bg = this.add.rectangle(
         x + DRAFT_SLOT_W / 2, DRAFT_SLOT_Y + DRAFT_SLOT_H / 2,
-        DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_COLOR_SLOT_EMPTY
-      ).setDepth(1).setInteractive({ useHandCursor: true });
-      bg.on('pointerdown', () => this._removeSlot(i));
+        DRAFT_SLOT_W, DRAFT_SLOT_H,
+        isLocked ? DRAFT_COLOR_LOCKED : DRAFT_COLOR_SLOT_EMPTY
+      ).setDepth(1);
+      if (!isLocked) {
+        bg.setInteractive({ useHandCursor: true });
+        bg.on('pointerdown', () => this._removeSlot(i));
+      }
 
-      const lbl = this.add.text(x + DRAFT_SLOT_W / 2, DRAFT_SLOT_Y + DRAFT_SLOT_H / 2, '', {
-        fontSize: '7px', color: '#aaaacc', fontFamily: 'monospace', align: 'center',
-        wordWrap: { width: DRAFT_SLOT_W - 4 },
-      }).setOrigin(0.5).setDepth(2);
+      const lbl = this.add.text(x + DRAFT_SLOT_W / 2, DRAFT_SLOT_Y + DRAFT_SLOT_H / 2,
+        isLocked ? 'LOCK' : '', {
+          fontSize: '7px',
+          color: isLocked ? '#333344' : '#aaaacc',
+          fontFamily: 'monospace', align: 'center',
+          wordWrap: { width: DRAFT_SLOT_W - 4 },
+        }
+      ).setOrigin(0.5).setDepth(2);
 
       this._slotRects.push(bg);
       this._slotLabels.push(lbl);
@@ -211,7 +230,7 @@ export default class DraftScene extends Phaser.Scene {
     }).setOrigin(0.5, 0).setDepth(2).setInteractive({ useHandCursor: true });
 
     btn.on('pointerdown', () => {
-      this.scene.restart({ testMode: !this._testMode });
+      this.scene.restart({ testMode: !this._testMode, character: this._character, slotIndex: this._slotIndex, floor: this._floor });
     });
   }
 
@@ -226,7 +245,7 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _increment(name) {
-    if (this._total >= LOADOUT_NUM_SLOTS) return;
+    if (this._total >= this._unlockedSlots) return;
     this._counts[name]++;
     this._refresh();
   }
@@ -246,7 +265,13 @@ export default class DraftScene extends Phaser.Scene {
 
   _confirm() {
     if (this._total === 0) return;
-    this.scene.start('GameScene', { loadout: this._loadout(), testMode: this._testMode });
+    this.scene.start('GameScene', {
+      loadout:   this._loadout(),
+      testMode:  this._testMode,
+      character: this._character,
+      slotIndex: this._slotIndex,
+      floor:     this._floor,
+    });
   }
 
   _refresh() {
@@ -254,8 +279,15 @@ export default class DraftScene extends Phaser.Scene {
       txt.setText(String(this._counts[name]));
     }
 
-    const loadout = this._loadout();
+    const loadout  = this._loadout();
+    const unlocked = this._unlockedSlots;
     for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
+      const isLocked = i >= unlocked;
+      if (isLocked) {
+        this._slotRects[i].setFillStyle(DRAFT_COLOR_LOCKED);
+        this._slotLabels[i].setText('LOCK');
+        continue;
+      }
       const filled = i < loadout.length;
       if (filled) {
         const stats = unitsData.find(u => u.name === loadout[i]);
