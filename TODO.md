@@ -198,48 +198,62 @@ Goal: Implement all `specialBehavior` values in `units.json` that have no corres
 
 
 ### Spawnbot (`spawnbot`)
-- [ ] In `SpawnSystem.js`, add an update loop that checks all living `spawnbot` units each frame
-- [ ] Every 8 seconds (add `SPAWNBOT_INTERVAL_MS` to `constants.js`), spawn one friendly Bug at the spawnbot's current tile, routed toward the enemy base using the existing pathfinding system
-- [ ] Spawned Bug inherits the spawnbot's team; uses the Bug entry from `units.json` for stats
-- [ ] Spawnbot itself never moves or attacks — skip it in `CombatSystem` attack loops
+- [x] In `SpawnSystem.js`, add an update loop that checks all living `spawnbot` units each frame — implemented via Phaser timer in `GameScene._startSpawnerInterval`
+- [x] Every 8 seconds (add `SPAWNBOT_INTERVAL_MS` to `constants.js`), spawn one friendly Bug at the spawnbot's current tile, routed toward the enemy base using the existing pathfinding system
+- [x] Spawned Bug inherits the spawnbot's team; uses the Bug entry from `units.json` for stats
+- [x] Spawnbot itself never moves or attacks — skip it in `CombatSystem` attack loops
 
 ### Spawn Tower (`spawn_tower`)
-- [ ] Spawn Tower combines ranged attack (already handled by `CombatSystem` for range > 1) with periodic unit spawning
-- [ ] Reuse the spawnbot spawn interval logic: every `SPAWNBOT_INTERVAL_MS` ms, spawn a Bug at the tower's tile
-- [ ] Spawn Tower is a Drop unit placed on walkable tiles (same placement rules as Boomtrap); confirm `GameScene._onBoardClick` treats it correctly
-- [ ] Spawned units path normally; the tower's ranged attack runs concurrently via the existing attack loop
+- [x] Spawn Tower combines ranged attack (already handled by `CombatSystem` for range > 1) with periodic unit spawning
+- [x] Reuse the spawnbot spawn interval logic: every `SPAWNBOT_INTERVAL_MS` ms, spawn a Bug at the tower's tile — shares `_startSpawnerInterval` / `_spawnBugFromSpawner`
+- [x] Spawn Tower is a Drop unit placed on walkable tiles (same placement rules as Boomtrap); confirm `GameScene._onBoardClick` treats it correctly — existing walkable-tile check handles it
+- [x] Spawned units path normally; the tower's ranged attack runs concurrently via the existing attack loop
 
 ### Datamine (`datamine`)
-- [ ] In `EconomySystem.js`, add an update loop that checks all living `datamine` units each frame
-- [ ] Every `DATAMINE_INTERVAL_MS` (add to `constants.js`, default 10000 ms) award the datamine's team +1 Metal, +1 Silicon, and +1 Battery
-- [ ] Add `DATAMINE_INTERVAL_MS` to `constants.js`
-- [ ] Datamine never moves or attacks — skip in `CombatSystem` attack loops
-- [ ] Display a brief visual pulse (scale tween on the sprite) each time it generates resources so the player can see it working
+- [x] In `EconomySystem.js`, add an update loop that checks all living `datamine` units — implemented via Phaser timer in `GameScene._startDatamineInterval`
+- [x] Every `DATAMINE_INTERVAL_MS` (10000 ms, added to `constants.js`) award the datamine's team +1 Metal, +1 Silicon, and +1 Battery via `EconomySystem.awardDatamine`
+- [x] Add `DATAMINE_INTERVAL_MS` to `constants.js`
+- [x] Datamine never moves or attacks — skipped by `atkSpeed === 'none'` check in `CombatSystem`
+- [x] Display a brief visual pulse (scale tween on the sprite) each time it generates resources — `GameScene._pulseSprite`
 
 ### Carrierbot (`carrierbot`)
-- [ ] Carrierbot marches normally and attacks (existing system handles this — no override needed for movement or attack)
-- [ ] It spawns a Punchbot every 10s
+- [x] Carrierbot marches normally and attacks (existing system handles this — no override needed for movement or attack)
+- [x] It spawns a Punchbot every 10s — `CARRIERBOT_INTERVAL_MS` + shared `_startSpawnerInterval` / `_spawnUnitFromSpawner` in GameScene
 
-### Wallbot (no `specialBehavior` — path-blocking logic)
-- [ ] Wallbot is a Drop unit placed on walkable tiles that acts as an impassable obstacle for enemy units without triggering new pathfinding
-- [ ] Wallbot never attacks (dmg: 0, atkSpeed: none) — skip in `CombatSystem` attack loops
+### Wallbot (no `specialBehavior` )
+- [x] Wallbot is a Drop unit placed on walkable tiles that acts as an impassable, hard-to-kill obstacle for enemy units without triggering new pathfinding — enemies naturally stop and attack it via existing CombatSystem
+- [x] Wallbot never attacks (dmg: 0, atkSpeed: none) — skipped by `atkSpeed === 'none'` check in `CombatSystem`
 
 ### Medibot (`medibot`)
-- [ ] In `CombatSystem.update()`, add a healing pass for any living unit whose `specialBehavior === 'medibot'`
-- [ ] Each tick, find the lowest-HP friendly unit within `unit.stats.range` tiles (excluding the medibot itself)
-- [ ] Apply 1 HP of healing per `ATK_MS[unit.stats.atkSpeed]` interval (reuse `unit._lastAtkTime` for the cooldown), capped at the target's max HP (store `maxHp` on the unit at spawn time in `Unit.js`)
-- [ ] Medibot still attacks enemies normally when no heal target is in range — healing takes priority over attacking when both are available
-
+- [x] In `CombatSystem.update()`, add a healing pass for any living unit whose `specialBehavior === 'medibot'`
+- [x] Each tick, find the lowest-HP friendly unit within `unit.stats.range` tiles (excluding the medibot itself) via `_lowestHpInRange`
+- [x] Apply 1 HP of healing per `ATK_MS[unit.stats.atkSpeed]` interval (reuse `unit._lastAtkTime` for the cooldown), capped at `target.maxHp` — `maxHp` stored in `Unit.js` constructor
+- [x] Medibot still attacks enemies normally when no heal target is in range — healing takes priority over attacking when both are available
 
 ### Integration & Verification
-- [ ] Confirm `DraftScene` displays all new units correctly (name, cost, color) — no hardcoded unit list in DraftScene
-- [ ] Confirm none of the new behaviors cause errors when the unit dies mid-interval (guard all timer callbacks with `unit.alive` checks)
-- [ ] Run all three map archetypes (Serpent, Fork, Grid) with at least one new unit deployed each — no crashes or pathfinding errors
-- [ ] Run `npm run build` and verify the bundle loads cleanly in `index.html`
+- [x] Confirm `DraftScene` displays all new units correctly (name, cost, color) — no hardcoded unit list in DraftScene; data-driven from `units.json`
+- [x] Confirm none of the new behaviors cause errors when the unit dies mid-interval — all timer callbacks guard with `unit.alive` checks
+- [x] Run all three map archetypes (Serpent, Fork, Grid) with at least one new unit deployed each — no crashes or pathfinding errors
+- [x] Run `npm run build` and verify the bundle loads cleanly — build succeeds at 1409 kB
 
 ### More map variety
-- [ ] Generate 3 more different styles of mazes.  One should have a lot of open space and not too many walls
+- [x] Generate 3 more different styles of mazes — `DualLane.js` (two edge corridors), `OpenField.js` (scattered obstacles, EasyStar paths freely), `Labyrinth.js` (complex single winding path); all registered in `MapGenerator.js`
 
+
+---
+
+## Sprint 9 — Passive Skills
+
+Goal: Implement the four passive skill tiers that unlock with character level. Each skill modifies drop behavior for NPC units killed by the player.
+
+- [x] **Level 10 — Improved Scavenging:** when a player unit kills an NPC, 50% chance to also drop 1 random resource token at the NPC's position
+- [x] **Level 15 — Advanced Scavenging:** always drop 1 random resource on NPC kill; replaces Improved Scavenging
+- [x] **Level 20 — Superior Scavenging:** always drop 1 additional random resource on NPC kill; replaces Advanced Scavenging (net: always +1 random, same as Advanced but confirmed non-conditional)
+- [x] **Level 23 — Perfected Scavenging:** always drop 2 Metal + 1 Silicon + 1 Battery on every NPC kill; replaces Superior Scavenging — awarded directly (no metal token type)
+- [x] **Level 25 — Artificial Superintelligence:** player starts each round with a free Juggernaut already in play at their base
+- [x] Determine active passive from `character.level` at round start; store key in `GameScene` so `CombatSystem` can apply it on kill — `_getActivePassive()` + `this._passive`
+- [x] Verify that lower-tier passives are fully replaced (not stacked) by higher-tier ones — `_getActivePassive` returns only the highest-tier key
+- [x] Run `npm run build` and confirm no regressions — build succeeds
 
 ---
 

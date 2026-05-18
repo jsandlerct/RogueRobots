@@ -2,7 +2,7 @@
 // No other file may define named constants or use bare magic numbers.
 
 // ── Test mode ─────────────────────────────────────────────────────────────────
-export const TESTMODE            = 1;   // default on/off (toggled at runtime via DraftScene)
+export const TESTMODE            = 0;   // default on/off (toggled at runtime via DraftScene)
 export const TESTMODE_RESOURCES  = { metal: 30, silicon: 30, batteries: 30 };
 
 // ── Grid ──────────────────────────────────────────────────────────────────────
@@ -37,6 +37,9 @@ export const DIVIDE_ROW      = 8;   // rows 0–7 NPC territory; rows 8–15 pla
 // ── Spawning ──────────────────────────────────────────────────────────────────
 export const PLAYER_SPAWN_INTERVAL_MS = 4000;
 export const NPC_SPAWN_INTERVAL_MS    = 3000;
+export const SPAWNBOT_INTERVAL_MS     = 8000;
+export const DATAMINE_INTERVAL_MS     = 10000;
+export const CARRIERBOT_INTERVAL_MS   = 10000;
 export const ESCALATION = [
   { atMs: 5  * 60 * 1000, intervalMs: 2000 },
   { atMs: 10 * 60 * 1000, intervalMs: 1000 },
@@ -128,8 +131,8 @@ export const NPC_SLOT_H = 44;
 export const HUD_PAD = 4;
 
 // ── Round-end overlay ─────────────────────────────────────────────────────────
-export const ROUND_END_PANEL_W     = 240;
-export const ROUND_END_PANEL_H     = 110;
+export const ROUND_END_PANEL_W     = 300;
+export const ROUND_END_PANEL_H     = 180;
 export const ROUND_END_PANEL_ALPHA = 0.9;
 
 // ── Feedback banner ───────────────────────────────────────────────────────────
@@ -152,6 +155,49 @@ export const DRAFT_COLOR_BG         = 0x0d0d1a;
 export const DRAFT_COLOR_SLOT_EMPTY = 0x111122;
 export const DRAFT_COLOR_CONFIRM_BG = 0x334455;
 export const DRAFT_COLOR_LOCKED     = 0x1a1a2a;
+
+// ── XP & progression ─────────────────────────────────────────────────────────
+// Index 0 = XP needed to go from level 1 → 2, index 1 = level 2 → 3, etc.
+export const XP_TO_NEXT = [
+   20,  40,  60,  80, 100, 150, 200, 250, 300, 350,  // 1→2 … 10→11
+  400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, // 11→12 … 20→21
+  1400, 1500, 2000, 2500, 3000,                         // 21→22 … 25 (cap)
+];
+export const MAX_LEVEL    = 25;
+export const MAX_FLOORS   = 15;
+export const XP_PER_KILL  = 1;
+export const XP_PER_FLOOR = 25;  // multiplied by floor number on base destroy
+
+// ── Passive skills ────────────────────────────────────────────────────────────
+export const PASSIVE_LEVEL_IMPROVED   = 10;
+export const PASSIVE_LEVEL_ADVANCED   = 15;
+export const PASSIVE_LEVEL_SUPERIOR   = 20;
+export const PASSIVE_LEVEL_PERFECTED  = 23;
+export const PASSIVE_LEVEL_ASI        = 25;
+
+// ── XP bar (bottom edge of map) ───────────────────────────────────────────────
+export const XP_BAR_H        = 5;
+export const XP_BAR_DEPTH    = 8;
+export const XP_BAR_COLOR_BG = 0x111133;
+export const XP_BAR_COLOR    = 0x3366dd;
+
+// ── Character Select screen ───────────────────────────────────────────────────
+export const CHARSEL_SAVE_KEY      = 'roguerobots_saves';
+export const CHARSEL_MAX_SLOTS     = 3;
+export const CHARSEL_MAX_NAME_LEN  = 16;
+export const CHARSEL_SLOT_W        = 480;
+export const CHARSEL_SLOT_H        = 130;
+export const CHARSEL_SLOT_GAP      = 16;
+export const CHARSEL_SLOT_X        = 36;   // (552 - 480) / 2
+export const CHARSEL_SLOT_Y1       = 90;
+export const CHARSEL_PLAY_Y        = 540;
+export const CHARSEL_WARN_Y        = 612;
+export const CHARSEL_COLOR_SLOT    = 0x111133;
+export const CHARSEL_COLOR_SEL     = 0x1a2a5a;
+export const CHARSEL_COLOR_PLAY    = 0x225533;
+export const CHARSEL_COLOR_DELETE  = 0x553322;
+export const CHARSEL_COLOR_CREATE  = 0x223344;
+export const CHARSEL_COLOR_MODAL   = 0x1a1a3a;
 
 // ── Pathfinding ───────────────────────────────────────────────────────────────
 export const PATHFINDING_ITERATIONS = 10000;

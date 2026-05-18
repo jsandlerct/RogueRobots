@@ -48,4 +48,17 @@ export default class EconomySystem {
     this.npcResources.silicon   -= cost.silicon   || 0;
     this.npcResources.batteries -= cost.batteries || 0;
   }
+
+  awardResources(resources) {
+    this.playerResources.metal     += resources.metal     || 0;
+    this.playerResources.silicon   += resources.silicon   || 0;
+    this.playerResources.batteries += resources.batteries || 0;
+  }
+
+  awardDatamine(team) {
+    const pool = team === 'player' ? this.playerResources : this.npcResources;
+    pool.metal++;
+    pool.silicon++;
+    pool.batteries++;
+  }
 }

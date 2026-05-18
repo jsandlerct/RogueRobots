@@ -10,11 +10,12 @@ import {
 } from '../data/constants.js';
 
 export default class CombatSystem {
-  constructor(scene, economySystem, onBaseHpChanged, onRoundEnd) {
+  constructor(scene, economySystem, onBaseHpChanged, onRoundEnd, onPlayerKill) {
     this._scene           = scene;
     this._economy         = economySystem;
     this._onBaseHpChanged = onBaseHpChanged;
     this._onRoundEnd      = onRoundEnd;
+    this._onPlayerKill    = onPlayerKill ?? null;
     this._units           = [];
     this._over            = false;
 
@@ -39,6 +40,23 @@ export default class CombatSystem {
         const enemies = living.filter(u => u.team !== unit.team && u.alive);
         this._tryBoomtrap(unit, enemies);
         continue;
+      }
+
+      // Non-attacking units (spawnbot, datamine, wallbot, etc.) — skip combat entirely.
+      if (unit.stats.atkSpeed === 'none') continue;
+
+      // Medibot: heal the lowest-HP friendly in range before attacking.
+      if (unit.stats.specialBehavior === 'medibot') {
+        const healables = living.filter(u =>
+          u.team === unit.team && u !== unit && u.alive && u.hp < u.maxHp
+        );
+        const healTarget = this._lowestHpInRange(unit, healables);
+        if (healTarget) {
+          unit.pause();
+          this._tryHeal(unit, healTarget, now);
+          continue;
+        }
+        // No friendly to heal — fall through to normal attack logic below.
       }
 
       // Units at the enemy base attack the base using their own dmg/atkSpeed.
@@ -95,7 +113,10 @@ export default class CombatSystem {
         if (this._tileDist(attacker, enemy) <= BOOMBOT_AOE_RADIUS) {
           const dmg    = Math.max(MIN_DAMAGE, attacker.stats.dmg - enemy.stats.armor);
           const killed = enemy.takeDamage(dmg);
-          if (killed) this._economy.awardKill(attacker.team);
+          if (killed) {
+            this._economy.awardKill(attacker.team);
+            if (attacker.team === 'player') this._onPlayerKill?.(enemy.col, enemy.row);
+          }
         }
       }
       attacker.destroy();
@@ -109,7 +130,10 @@ export default class CombatSystem {
 
     const dmg    = Math.max(MIN_DAMAGE, attacker.stats.dmg - target.stats.armor);
     const killed = target.takeDamage(dmg);
-    if (killed) this._economy.awardKill(attacker.team);
+    if (killed) {
+      this._economy.awardKill(attacker.team);
+      if (attacker.team === 'player') this._onPlayerKill?.(target.col, target.row);
+    }
   }
 
   _fireProjectile(attacker, target) {
@@ -141,6 +165,24 @@ export default class CombatSystem {
     });
   }
 
+  _lowestHpInRange(healer, candidates) {
+    let best = null, bestHp = Infinity;
+    for (const u of candidates) {
+      if (this._tileDist(healer, u) <= healer.stats.range + RANGE_TOLERANCE && u.hp < bestHp) {
+        best = u;
+        bestHp = u.hp;
+      }
+    }
+    return best;
+  }
+
+  _tryHeal(healer, target, now) {
+    const atkMs = ATK_MS[healer.stats.atkSpeed] ?? 1000;
+    if (now - healer._lastAtkTime < atkMs) return;
+    healer._lastAtkTime = now;
+    target.hp = Math.min(target.maxHp, target.hp + 1);
+  }
+
   _tryBoomtrap(trap, enemies) {
     for (const enemy of enemies) {
       if (!enemy.alive) continue;
@@ -150,7 +192,10 @@ export default class CombatSystem {
           if (this._tileDist(trap, e) <= trap.stats.range + RANGE_TOLERANCE) {
             const dmg    = Math.max(MIN_DAMAGE, trap.stats.dmg - e.stats.armor);
             const killed = e.takeDamage(dmg);
-            if (killed) this._economy.awardKill(trap.team);
+            if (killed) {
+              this._economy.awardKill(trap.team);
+              if (trap.team === 'player') this._onPlayerKill?.(e.col, e.row);
+            }
           }
         }
         trap.destroy();
