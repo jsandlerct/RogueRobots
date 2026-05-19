@@ -15,13 +15,15 @@ import {
   DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
   ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
   TOKEN_SPAWN_INTERVAL_MS, TOKEN_DROP_PROB_SMALL, TOKEN_DROP_PROB_MEDIUM,
-  NPC_PURCHASE_INTERVAL_MS, FEEDBACK_DURATION_MS,
+  NPC_PURCHASE_INTERVAL_MS, NPC_FAVORITE_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
   SPAWNBOT_INTERVAL_MS, DATAMINE_INTERVAL_MS, CARRIERBOT_INTERVAL_MS,
   XP_TO_NEXT, MAX_LEVEL, MAX_FLOORS, XP_PER_KILL, XP_PER_FLOOR,
   XP_BAR_H, XP_BAR_DEPTH, XP_BAR_COLOR_BG, XP_BAR_COLOR,
   CHARSEL_SAVE_KEY,
   PASSIVE_LEVEL_IMPROVED, PASSIVE_LEVEL_ADVANCED, PASSIVE_LEVEL_SUPERIOR,
   PASSIVE_LEVEL_PERFECTED, PASSIVE_LEVEL_ASI,
+  POWERUP_EMP_DURATION_MS, POWERUP_OVERCHARGE_DURATION_MS,
+  POWERUP_FORTIFY_DURATION_MS, POWERUP_SUPPLY_RESOURCES, POWERUP_SURGE_COUNT,
 } from '../data/constants.js';
 import MapGenerator from '../map/MapGenerator.js';
 import PathfindingSystem from '../systems/PathfindingSystem.js';
@@ -30,9 +32,12 @@ import CombatSystem from '../systems/CombatSystem.js';
 import EconomySystem from '../systems/EconomySystem.js';
 import HUD from '../ui/HUD.js';
 import LoadoutBar from '../ui/LoadoutBar.js';
+import PowerupSystem from '../systems/PowerupSystem.js';
+import PowerupBar from '../ui/PowerupBar.js';
 import Unit from '../entities/Unit.js';
 import ResourceToken from '../entities/ResourceToken.js';
 import unitsData from '../data/units.json';
+import floorsData from '../data/floors.json';
 
 // Fallback loadout when GameScene is started directly (dev/testing)
 const DEFAULT_LOADOUT = [
@@ -40,8 +45,12 @@ const DEFAULT_LOADOUT = [
   'Tankbot', 'Floatbot', 'Boomtrap', 'Zap Tower',
 ];
 
-// NPC level 1 roster — displayed in the enemy loadout bar
-const NPC_ROSTER = ['Punchbot', 'Punchbot', 'Zapbot', 'Zapbot'];
+const DEFAULT_FLOOR_CONFIG = {
+  ai: 'ENEMY', favoriteUnit: 'Punchbot',
+  resources: { metal: 0, silicon: 0, batteries: 0 },
+  loadout: ['Punchbot', 'Punchbot', 'Zapbot', 'Zapbot'],
+  quote: '',
+};
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -49,14 +58,16 @@ export default class GameScene extends Phaser.Scene {
   }
 
   init(data) {
-    this._loadout        = data?.loadout    ?? DEFAULT_LOADOUT;
-    this._testMode       = data?.testMode   ?? false;
-    this._character      = data?.character  ?? null;
-    this._slotIndex      = data?.slotIndex  ?? null;
-    this._floor          = data?.floor      ?? 1;
-    this._xpThisRound    = 0;
+    this._loadout           = data?.loadout           ?? DEFAULT_LOADOUT;
+    this._testMode          = data?.testMode          ?? false;
+    this._character         = data?.character         ?? null;
+    this._slotIndex         = data?.slotIndex         ?? null;
+    this._floor             = data?.floor             ?? 1;
+    this._startingResources = data?.startingResources ?? null;
+    this._xpThisRound       = 0;
     this._levelUpsThisRound = [];
-    this._passive        = this._getActivePassive(this._character?.level ?? 0);
+    this._passive           = this._getActivePassive(this._character?.level ?? 0);
+    this._floorConfig       = floorsData.find(f => f.floor === this._floor) ?? DEFAULT_FLOOR_CONFIG;
   }
 
   _getActivePassive(level) {
@@ -85,7 +96,10 @@ export default class GameScene extends Phaser.Scene {
     this._roundStartTime = null;
     this._roundOver      = false;
 
-    this._economy = new EconomySystem(this._testMode ? TESTMODE_RESOURCES : undefined);
+    this._economy = new EconomySystem(
+      this._testMode ? TESTMODE_RESOURCES : (this._startingResources ?? undefined),
+      this._floorConfig.resources
+    );
     this._combat  = new CombatSystem(
       this,
       this._economy,
@@ -126,10 +140,26 @@ export default class GameScene extends Phaser.Scene {
     });
     this._spawnToken();
 
+    this._powerupSystem = new PowerupSystem(this, {
+      grid:      this._grid,
+      getTokens: () => this._tokens,
+      addToken:  (t) => { this._tokens.push(t); this._wakeIdleScavengers(); },
+    });
+    this._powerupBar = new PowerupBar(this, (i) => this._onPowerupSlotTapped(i));
+    this._powerupBar.refresh(this._powerupSystem.slots);
+
     this.time.addEvent({
       delay: NPC_PURCHASE_INTERVAL_MS,
       loop: true,
       callback: this._npcPurchaseTick,
+      callbackScope: this,
+    });
+
+    this._spawnFavoriteUnit();
+    this.time.addEvent({
+      delay: NPC_FAVORITE_SPAWN_INTERVAL_MS,
+      loop: true,
+      callback: this._spawnFavoriteUnit,
       callbackScope: this,
     });
 
@@ -365,7 +395,12 @@ export default class GameScene extends Phaser.Scene {
     const path = await this._pathfinding.findPath(
       unit.col, unit.row, target.col, target.row
     );
-    if (path && path.length > 1) unit.followPath(path);
+    if (!unit.alive) return;
+    if (path && path.length > 1) {
+      unit.atBase = false;
+      unit.paused = false;
+      unit.followPath(path);
+    }
   }
 
   _wakeIdleScavengers() {
@@ -447,10 +482,21 @@ export default class GameScene extends Phaser.Scene {
     let collected = false;
     for (const token of this._tokens) {
       if (!token.alive || token.col !== col || token.row !== row) continue;
-      token.collect();
-      if (team === 'player') this._economy.collectToken(token.type, token.amount);
-      else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
-      collected = true;
+
+      if (token.type === 'powerup') {
+        token.collect();
+        if (team === 'player' && this._powerupSystem.hasSlotsAvailable()) {
+          this._powerupSystem.collectFromMap(token.powerupType);
+          this._powerupBar.refresh(this._powerupSystem.slots);
+        }
+        // Enemy walking over it: token is destroyed and lost.
+        collected = true;
+      } else {
+        token.collect();
+        if (team === 'player') this._economy.collectToken(token.type, token.amount);
+        else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
+        collected = true;
+      }
     }
     this._tokens = this._tokens.filter(t => t.alive);
 
@@ -471,7 +517,7 @@ export default class GameScene extends Phaser.Scene {
 
   _npcPurchaseTick() {
     const now = this.time.now;
-    const eligible = NPC_ROSTER
+    const eligible = this._floorConfig.loadout
       .map((unitName, i) => ({ unitName, i, stats: unitsData.find(u => u.name === unitName) }))
       .filter(({ i, stats }) => {
         const cooldownMs = (stats.cooldown ?? 0) * 1000;
@@ -484,6 +530,41 @@ export default class GameScene extends Phaser.Scene {
     this._npcCooldowns.set(pick.i, now);
     this._hud.updateNpcResources(this._economy.npcResources);
     this._deployNpcUnit(pick.unitName, pick.stats);
+  }
+
+  _spawnFavoriteUnit() {
+    const unitName = this._floorConfig.favoriteUnit;
+    const stats    = unitsData.find(u => u.name === unitName);
+    if (!stats) return;
+
+    if (stats.spawn === 'Drop') {
+      const walkable = [];
+      for (let r = 0; r < DIVIDE_ROW; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (this._grid[r][c] === TILE_WALKABLE) walkable.push({ col: c, row: r });
+        }
+      }
+      if (walkable.length === 0) return;
+      const { col, row } = walkable[Math.floor(Math.random() * walkable.length)];
+      this._deployNpcAtTile(unitName, stats, col, row);
+    } else {
+      this._deployNpcUnit(unitName, stats);
+    }
+  }
+
+  async _deployNpcAtTile(unitName, stats, col, row) {
+    const unit = new Unit(this, col, row, unitName, 'npc');
+    this._attachTokenCallback(unit, 'npc');
+    this._combat.addUnit(unit);
+    this.units.push(unit);
+
+    if (stats.moveSpeed !== 'none') {
+      const path = await this._pathfinding.findPath(col, row, PLAYER_BASE_COL, PLAYER_BASE_ROW);
+      if (path && path.length > 1) unit.followPath(this._trimPathToRange(path, stats.range));
+    }
+    if (stats.specialBehavior === 'spawnbot' || stats.specialBehavior === 'spawn_tower') {
+      this._startSpawnbotLoop(unit);
+    }
   }
 
   async _deployNpcUnit(unitName, stats) {
@@ -560,7 +641,12 @@ export default class GameScene extends Phaser.Scene {
     try {
       const saves = JSON.parse(localStorage.getItem(CHARSEL_SAVE_KEY) || '[]');
       while (saves.length < 3) saves.push(null);
-      saves[this._slotIndex] = { name: this._character.name, level: this._character.level, xp: this._character.xp };
+      saves[this._slotIndex] = {
+        name:         this._character.name,
+        level:        this._character.level,
+        xp:           this._character.xp,
+        highestFloor: this._character.highestFloor ?? 1,
+      };
       localStorage.setItem(CHARSEL_SAVE_KEY, JSON.stringify(saves));
     } catch {}
   }
@@ -574,6 +660,10 @@ export default class GameScene extends Phaser.Scene {
 
     if (winner === 'player') {
       this._awardXP(XP_PER_FLOOR * this._floor);
+      if (this._character && this._floor > (this._character.highestFloor ?? 1)) {
+        this._character = { ...this._character, highestFloor: this._floor };
+        this._saveCharacter();
+      }
     }
 
     const isWin      = winner === 'player';
@@ -634,6 +724,74 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  // ── Powerup activation ────────────────────────────────────────────────────
+
+  _onPowerupSlotTapped(slotIndex) {
+    if (this._roundOver) return;
+    const type = this._powerupSystem.consume(slotIndex);
+    if (!type) return;
+    this._powerupBar.refresh(this._powerupSystem.slots);
+    this._applyPowerup(type);
+  }
+
+  _applyPowerup(type) {
+    switch (type) {
+      case 'emp':        this._activateEmp();        break;
+      case 'airstrike':  this._activateAirstrike();   break;
+      case 'overcharge': this._activateOvercharge();  break;
+      case 'supply':     this._activateSupplyDrop();  break;
+      case 'surge':      this._activateSurge();       break;
+      case 'fortify':    this._activateFortify();     break;
+    }
+  }
+
+  _activateEmp() {
+    const now = this.time.now;
+    for (const unit of this.units) {
+      if (!unit.alive || unit.team !== 'npc') continue;
+      if (unit.row < DIVIDE_ROW) continue;
+      unit._empStunUntil = now + POWERUP_EMP_DURATION_MS;
+    }
+    this._showFeedback('EMP BLAST! Enemies stunned 3s');
+  }
+
+  _activateAirstrike() {
+    for (const unit of [...this.units]) {
+      if (!unit.alive || unit.team !== 'npc') continue;
+      if (unit.row < DIVIDE_ROW) continue;
+      unit.destroy();
+      this._economy.awardKill('player');
+      this._awardXP(XP_PER_KILL);
+      this._applyPassiveOnKill(unit.col, unit.row);
+    }
+    this._showFeedback('AIRSTRIKE! Enemy units eliminated');
+  }
+
+  _activateOvercharge() {
+    this._combat.activateOvercharge(POWERUP_OVERCHARGE_DURATION_MS);
+    this._showFeedback('OVERCHARGE! 2× damage for 10s');
+  }
+
+  _activateSupplyDrop() {
+    this._economy.awardResources(POWERUP_SUPPLY_RESOURCES);
+    this._refreshEconomyUI();
+    this._showFeedback('SUPPLY DROP! +10M +5Si +5B');
+  }
+
+  _activateSurge() {
+    const stats = unitsData.find(u => u.name === 'Bug');
+    if (!stats) return;
+    for (let i = 0; i < POWERUP_SURGE_COUNT; i++) {
+      this._deployUnit('Bug', PLAYER_BASE_COL, PLAYER_BASE_ROW, stats);
+    }
+    this._showFeedback('SURGE! +5 units deployed');
+  }
+
+  _activateFortify() {
+    this._combat.activateFortify(POWERUP_FORTIFY_DURATION_MS);
+    this._showFeedback('FORTIFY! Base shielded for 8s');
+  }
+
   // ── Feedback ──────────────────────────────────────────────────────────────
 
   _showFeedback(msg) {
@@ -653,10 +811,10 @@ export default class GameScene extends Phaser.Scene {
     gfx.lineStyle(1, 0x334455, 0.8);
     gfx.lineBetween(BOARD_OFFSET_X, NPC_LOADOUT_BAR_H - 1, BOARD_OFFSET_X + BOARD_W, NPC_LOADOUT_BAR_H - 1);
 
-    this.add.text(4, NPC_LOADOUT_BAR_H / 2, 'ENEMY\nROSTER', {
+    this.add.text(30, NPC_LOADOUT_BAR_H / 2, this._floorConfig.ai.toUpperCase(), {
       fontSize: '8px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: 56 },
-    }).setOrigin(0.5, 0.5).setX(30).setDepth(DEPTH_NPC_LOADOUT_TEXT);
+    }).setOrigin(0.5, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
 
     this._npcBarSlots = [];
 
@@ -665,7 +823,7 @@ export default class GameScene extends Phaser.Scene {
     const RES_Y2 = 39;
     const RES_Y3 = 48;
 
-    NPC_ROSTER.forEach((unitName, i) => {
+    this._floorConfig.loadout.forEach((unitName, i) => {
       const stats     = unitsData.find(u => u.name === unitName);
       const fillColor = parseInt(stats.color.slice(1), 16);
       const cx = LOADOUT_BAR_X + i * NPC_SLOT_W + NPC_SLOT_W / 2;

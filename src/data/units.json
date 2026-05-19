@@ -116,7 +116,7 @@
     "name": "Boomtrap",
     "color": "#771111",
     "isRobot": true,
-    "cost": { "metal": 5, "silicon": 1, "batteries": 2 },
+    "cost": { "metal": 5, "silicon": 0, "batteries": 0 },
     "spawn": "Drop",
     "hp": 3,
     "dmg": 10,
@@ -125,7 +125,7 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": "boomtrap",
-    "cooldown": 10,
+    "cooldown": 20,
     "unlockLevel": 7
   },
   {

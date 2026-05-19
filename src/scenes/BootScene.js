@@ -42,6 +42,13 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('silicon1', 'assets/images/silicon1.png');
     this.load.image('silicon2', 'assets/images/silicon2.png');
     this.load.image('silicon3', 'assets/images/silicon3.png');
+
+    this.load.image('powerup_emp',        'assets/images/emp blast icon.png');
+    this.load.image('powerup_airstrike',  'assets/images/airstrike icon.png');
+    this.load.image('powerup_overcharge', 'assets/images/overcharge icon.png');
+    this.load.image('powerup_supply',     'assets/images/supply drop icon.png');
+    this.load.image('powerup_surge',      'assets/images/surge icon.png');
+    this.load.image('powerup_fortify',    'assets/images/fortify icon.png');
   }
 
   create() {
@@ -76,7 +83,7 @@ export default class BootScene extends Phaser.Scene {
       } catch (e) { console.warn(`[Boot] anim ${def.key}:`, e.message); }
     }
 
-    this.scene.start('DraftScene', { character: this._character, slotIndex: this._slotIndex, floor: 1 });
+    this.scene.start('NarrativeScene', { character: this._character, slotIndex: this._slotIndex });
   }
 
   // Build a corrected atlas data object for sprites whose walk frames have the body

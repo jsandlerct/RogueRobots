@@ -20,10 +20,21 @@ export default class CombatSystem {
     this._over            = false;
 
     this.baseHp = { player: BASE_HP, npc: BASE_HP };
+
+    this._overchargeUntil = 0;
+    this._fortifyUntil    = 0;
   }
 
   addUnit(unit) {
     this._units.push(unit);
+  }
+
+  activateOvercharge(durationMs) {
+    this._overchargeUntil = this._scene.time.now + durationMs;
+  }
+
+  activateFortify(durationMs) {
+    this._fortifyUntil = this._scene.time.now + durationMs;
   }
 
   update() {
@@ -34,6 +45,12 @@ export default class CombatSystem {
 
     for (const unit of living) {
       if (!unit.alive) continue;
+
+      // EMP stun: freeze unit in place, skip all combat.
+      if (unit._empStunUntil && now < unit._empStunUntil) {
+        unit.pause();
+        continue;
+      }
 
       // Boomtrap: proximity-triggered — handled separately from normal attack flow.
       if (unit.stats.specialBehavior === 'boomtrap') {
@@ -106,12 +123,15 @@ export default class CombatSystem {
 
     attacker._lastAtkTime = now;
 
+    const overcharged = attacker.team === 'player' && now < this._overchargeUntil;
+    const dmgMult     = overcharged ? 2 : 1;
+
     if (attacker.stats.specialBehavior === 'boombot_aoe') {
       // AoE: damage all enemies within radius, then self-destruct.
       const aoeEnemies = this._units.filter(u => u.alive && u.team !== attacker.team);
       for (const enemy of aoeEnemies) {
         if (this._tileDist(attacker, enemy) <= BOOMBOT_AOE_RADIUS) {
-          const dmg    = Math.max(MIN_DAMAGE, attacker.stats.dmg - enemy.stats.armor);
+          const dmg    = Math.max(MIN_DAMAGE, (attacker.stats.dmg - enemy.stats.armor) * dmgMult);
           const killed = enemy.takeDamage(dmg);
           if (killed) {
             this._economy.awardKill(attacker.team);
@@ -128,7 +148,7 @@ export default class CombatSystem {
       this._fireProjectile(attacker, target);
     }
 
-    const dmg    = Math.max(MIN_DAMAGE, attacker.stats.dmg - target.stats.armor);
+    const dmg    = Math.max(MIN_DAMAGE, (attacker.stats.dmg - target.stats.armor) * dmgMult);
     const killed = target.takeDamage(dmg);
     if (killed) {
       this._economy.awardKill(attacker.team);
@@ -206,6 +226,9 @@ export default class CombatSystem {
 
   _tryAttackBase(unit, now) {
     unit.pause();
+
+    // Fortify: player base is invulnerable.
+    if (unit.team === 'npc' && now < this._fortifyUntil) return;
 
     const atkMs = ATK_MS[unit.stats.atkSpeed] ?? 1000;
     if (now - unit._lastAtkTime < atkMs) return;

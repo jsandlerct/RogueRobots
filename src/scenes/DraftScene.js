@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   CANVAS_W, CANVAS_H,
   STARTING_RESOURCES, TESTMODE_RESOURCES, LOADOUT_NUM_SLOTS, TESTMODE,
+  FLOOR_RES_MIN_METAL,
   MAX_FLOORS,
   DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_CARD_PAD, DRAFT_CARD_ROW_Y,
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
@@ -9,7 +10,16 @@ import {
   DRAFT_COLOR_BG, DRAFT_COLOR_SLOT_EMPTY, DRAFT_COLOR_CONFIRM_BG, DRAFT_COLOR_LOCKED,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
+import floorsData from '../data/floors.json';
 import { UNIT_SPRITE_KEY } from '../data/spriteData.js';
+
+function _rollStartingResources(level) {
+  const res  = { metal: FLOOR_RES_MIN_METAL, silicon: 0, batteries: 0 };
+  const keys = ['metal', 'silicon', 'batteries'];
+  // total = level + 3; guaranteed 3 metal already accounted for, so distribute `level` extra
+  for (let i = 0; i < level; i++) res[keys[Math.floor(Math.random() * 3)]]++;
+  return res;
+}
 
 // 5 rows × 4 cols = 20 total slots; slots beyond available count show as LOCKED
 const TOTAL_SLOTS = 20;
@@ -33,6 +43,8 @@ export default class DraftScene extends Phaser.Scene {
     this._character = data?.character ?? null;
     this._slotIndex = data?.slotIndex ?? null;
     this._floor     = data?.floor     ?? 1;
+    this._startingResources = data?.startingResources
+      ?? (this._testMode ? TESTMODE_RESOURCES : _rollStartingResources(this._character?.level ?? 1));
   }
 
   get _unlockedSlots() {
@@ -47,8 +59,17 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   create() {
-    this._counts      = {};
+    this._counts = {};
     this._available().forEach(u => { this._counts[u.name] = 0; });
+
+    if (!this._testMode && (this._character?.level ?? 0) < 9) {
+      let filled = 0;
+      for (const u of this._available()) {
+        if (filled >= this._unlockedSlots) break;
+        this._counts[u.name] = 1;
+        filled++;
+      }
+    }
 
     this._slotRects   = [];
     this._slotLabels  = [];
@@ -71,24 +92,43 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _buildHeader() {
-    const cx = CANVAS_W / 2;
-    this.add.text(cx, 14, 'ROGUE ROBOTS', {
-      fontSize: '20px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    const cx       = CANVAS_W / 2;
+    const floorCfg = floorsData.find(f => f.floor === this._floor);
+    const aiName   = floorCfg?.ai ?? 'ENEMY';
+    const favUnit  = floorCfg?.favoriteUnit ?? '';
+    const rawQuote = floorCfg?.quote ?? '';
+    const charName = this._character?.name ?? 'Agent';
+    const quote    = rawQuote.replace('<player name>', charName);
+
+    this.add.text(cx, 6, `FLOOR ${this._floor} / ${MAX_FLOORS}`, {
+      fontSize: '15px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    const floorLabel = `FLOOR ${this._floor} / ${MAX_FLOORS}  ·  DRAFT YOUR LOADOUT`;
-    this.add.text(cx, 42, floorLabel, {
-      fontSize: '13px', color: '#aaaacc', fontFamily: 'monospace',
+    this.add.text(cx, 28, aiName.toUpperCase(), {
+      fontSize: '13px', color: '#ff9999', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    const res    = this._testMode ? TESTMODE_RESOURCES : STARTING_RESOURCES;
+    if (favUnit) {
+      this.add.text(cx, 47, `Favorite robot: ${favUnit}`, {
+        fontSize: '9px', color: '#ffcccc', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+    }
+
+    if (quote) {
+      this.add.text(cx, 62, `"${quote}"`, {
+        fontSize: '8px', color: '#aabbcc', fontFamily: 'monospace', fontStyle: 'italic',
+        align: 'center', wordWrap: { width: CANVAS_W - 24 },
+      }).setOrigin(0.5, 0);
+    }
+
+    const res    = this._startingResources;
     const resStr = `Starting Resources:  M:${res.metal}  Si:${res.silicon}  B:${res.batteries}`;
-    this.add.text(cx, 64, resStr, {
-      fontSize: '10px', color: '#ffdd88', fontFamily: 'monospace',
+    this.add.text(cx, 80, resStr, {
+      fontSize: '13px', color: '#ffdd88', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     const subtitle = this._testMode ? '── ALL UNITS UNLOCKED (TEST MODE) ──' : '── SELECT UNITS (Lvl 1 unlocked) ──';
-    this.add.text(cx, 86, subtitle, {
+    this.add.text(cx, 100, subtitle, {
       fontSize: '9px', color: this._testMode ? '#ff9900' : '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
   }
@@ -129,6 +169,16 @@ export default class DraftScene extends Phaser.Scene {
       this.add.text(x + 6, y + 5, unit.name.toUpperCase(), {
         fontSize: '9px', color: '#eeeeff', fontFamily: 'monospace', fontStyle: 'bold',
       }).setDepth(3);
+
+      const infoIcon = this.add.text(x + DRAFT_CARD_W - 58, y + 4, 'ⓘ', {
+        fontSize: '11px', color: '#88aaff', fontFamily: 'monospace',
+      }).setDepth(3).setInteractive({ useHandCursor: true });
+      infoIcon.on('pointerover', () => infoIcon.setColor('#bbccff'));
+      infoIcon.on('pointerout',  () => infoIcon.setColor('#88aaff'));
+      infoIcon.on('pointerdown', (ptr, lx, ly, evt) => {
+        evt.stopPropagation();
+        this._showUnitInfoPopup(unit);
+      });
 
       const stats = `${unit.hp}HP ${unit.dmg}D ${unit.range}R ${unit.armor}A`;
       this.add.text(x + 6, y + 18, stats, {
@@ -230,7 +280,7 @@ export default class DraftScene extends Phaser.Scene {
     }).setOrigin(0.5, 0).setDepth(2).setInteractive({ useHandCursor: true });
 
     btn.on('pointerdown', () => {
-      this.scene.restart({ testMode: !this._testMode, character: this._character, slotIndex: this._slotIndex, floor: this._floor });
+      this.scene.restart({ testMode: !this._testMode, character: this._character, slotIndex: this._slotIndex, floor: this._floor, startingResources: this._startingResources });
     });
   }
 
@@ -266,11 +316,12 @@ export default class DraftScene extends Phaser.Scene {
   _confirm() {
     if (this._total === 0) return;
     this.scene.start('GameScene', {
-      loadout:   this._loadout(),
-      testMode:  this._testMode,
-      character: this._character,
-      slotIndex: this._slotIndex,
-      floor:     this._floor,
+      loadout:           this._loadout(),
+      testMode:          this._testMode,
+      character:         this._character,
+      slotIndex:         this._slotIndex,
+      floor:             this._floor,
+      startingResources: this._startingResources,
     });
   }
 
@@ -299,5 +350,73 @@ export default class DraftScene extends Phaser.Scene {
     }
 
     this._confirmBtn.setColor(this._total > 0 ? '#ffffff' : '#555566');
+  }
+
+  _showUnitInfoPopup(unit) {
+    const depth  = 30;
+    const cx     = CANVAS_W / 2;
+    const cy     = CANVAS_H / 2;
+    const panelW = 310;
+    const panelH = 330;
+    const cardColor = parseInt(unit.color.slice(1), 16);
+
+    const overlay = this.add.rectangle(cx, cy, CANVAS_W, CANVAS_H, 0x000000, 0.78)
+      .setDepth(depth).setInteractive();
+
+    const panel = this.add.rectangle(cx, cy, panelW, panelH, 0x1a1a2e)
+      .setStrokeStyle(2, cardColor).setDepth(depth + 1);
+
+    const top = cy - panelH / 2;
+
+    const titleBar = this.add.rectangle(cx, top + 20, panelW, 40, cardColor, 0.6)
+      .setDepth(depth + 1);
+
+    const titleTxt = this.add.text(cx, top + 20, unit.name.toUpperCase(), {
+      fontSize: '20px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(depth + 2);
+
+    const { metal: m, silicon: s, batteries: b } = unit.cost;
+
+    const lines = [
+      [`HP`,           String(unit.hp)],
+      [`Damage`,       String(unit.dmg)],
+      [`Range`,        String(unit.range)],
+      [`Armor`,        String(unit.armor)],
+      [`Move Speed`,   unit.moveSpeed],
+      [`Attack Speed`, unit.atkSpeed],
+      [`Spawn`,        unit.spawn],
+      [`Metal`,        String(m)],
+      [`Silicon`,      String(s)],
+      [`Batteries`,    String(b)],
+      [`Special`,      unit.specialBehavior ?? '—'],
+    ];
+
+    const rowH  = 20;
+    const startY = top + 54;
+    const lx = cx - 130;
+    const rx = cx + 10;
+
+    const rowObjs = [];
+    lines.forEach(([label, value], i) => {
+      const ry = startY + i * rowH;
+      rowObjs.push(this.add.text(lx, ry, label, {
+        fontSize: '13px', color: '#8899bb', fontFamily: 'monospace',
+      }).setDepth(depth + 2));
+      rowObjs.push(this.add.text(rx, ry, value, {
+        fontSize: '13px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setDepth(depth + 2));
+    });
+
+    const closeBtnY = cy + panelH / 2 - 22;
+    const closeBg = this.add.rectangle(cx, closeBtnY, 100, 28, 0x2a2a44)
+      .setStrokeStyle(1, 0x6677aa).setDepth(depth + 1);
+    const closeTxt = this.add.text(cx, closeBtnY, 'CLOSE', {
+      fontSize: '13px', color: '#aabbcc', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(depth + 2).setInteractive({ useHandCursor: true });
+
+    const all = [overlay, panel, titleBar, titleTxt, closeBg, closeTxt, ...rowObjs];
+    const cleanup = () => all.forEach(o => o.destroy());
+    closeTxt.on('pointerdown', cleanup);
+    overlay.on('pointerdown', cleanup);
   }
 }
