@@ -142,6 +142,7 @@ export const ROUND_END_PANEL_ALPHA = 0.9;
 export const FEEDBACK_DURATION_MS = 1200;
 
 // ── Draft screen ──────────────────────────────────────────────────────────────
+export const DRAFT_SAVE_KEY         = 'roguerobots_savedDraft';
 export const DRAFT_CARD_W           = 128;  // 4 cols: (552 - 5×8) / 4
 export const DRAFT_CARD_H           = 62;
 export const DRAFT_CARD_PAD         = 8;
@@ -173,9 +174,9 @@ export const XP_PER_FLOOR = 25;  // multiplied by floor number on base destroy
 
 // ── Powerup system ────────────────────────────────────────────────────────────
 export const POWERUP_DROP_INTERVAL_MS       = 20000;
-export const POWERUP_DROP_CHANCE            = 0.25;
+export const POWERUP_DROP_CHANCE            = 0.50;
 export const POWERUP_TYPES                  = ['emp', 'airstrike', 'overcharge', 'supply', 'surge', 'fortify'];
-export const POWERUP_EMP_DURATION_MS        = 3000;
+export const POWERUP_EMP_DURATION_MS        = 5000;
 export const POWERUP_OVERCHARGE_DURATION_MS = 10000;
 export const POWERUP_FORTIFY_DURATION_MS    = 8000;
 export const POWERUP_SUPPLY_RESOURCES       = { metal: 10, silicon: 5, batteries: 5 };
@@ -190,6 +191,22 @@ export const POWERUP_ICON_PX   = 32;
 export const POWERUP_TOKEN_SIZE = 26;
 export const DEPTH_POWERUP_TOKEN = 6;
 export const DEPTH_POWERUP_SLOT  = 11;
+
+// Powerup tooltip
+export const TOOLTIP_HOVER_DELAY_MS = 400;
+export const TOOLTIP_LONGPRESS_MS   = 500;
+export const DEPTH_TOOLTIP          = 50;
+export const TOOLTIP_W              = 182;
+export const TOOLTIP_H              = 62;
+export const POWERUP_TOOLTIP_X      = BOARD_OFFSET_X + 4;
+export const POWERUP_DESCRIPTIONS   = {
+  emp:        { name: 'EMP',         desc: 'Stuns all enemy robots for 5s.' },
+  airstrike:  { name: 'Airstrike',   desc: 'Destroys all enemies in a column.' },
+  overcharge: { name: 'Overcharge',  desc: 'Your robots deal double damage for 10s.' },
+  supply:     { name: 'Supply Drop', desc: 'Gain 10 Metal, 5 Silicon, 5 Batteries.' },
+  surge:      { name: 'Surge',       desc: 'Spawns 5 of your auto-spawn robot now.' },
+  fortify:    { name: 'Fortify',     desc: 'Your base takes no damage for 8s.' },
+};
 
 // ── Passive skills ────────────────────────────────────────────────────────────
 export const PASSIVE_LEVEL_IMPROVED   = 10;

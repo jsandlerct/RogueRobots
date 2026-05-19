@@ -10,10 +10,22 @@ function parseColor(hex) {
   return parseInt(hex.slice(1), 16);
 }
 
+// Splits compound bot/tower/trap names at the suffix so they wrap to two lines.
+// Falls back to a midpoint split for other long names.
+function wrapSlotName(name) {
+  const m = name.match(/^(.+?)\s*(bot|tower|trap)$/i);
+  if (m) return `${m[1].trim()}\n${m[2]}`;
+  if (name.length > 7) {
+    const i = Math.ceil(name.length / 2);
+    return `${name.slice(0, i)}\n${name.slice(i)}`;
+  }
+  return name;
+}
+
 // Y offsets within each slot for the three resource rows
-const RES_Y1 = LOADOUT_BAR_Y + 33;
-const RES_Y2 = LOADOUT_BAR_Y + 43;
-const RES_Y3 = LOADOUT_BAR_Y + 53;
+const RES_Y1 = LOADOUT_BAR_Y + 38;
+const RES_Y2 = LOADOUT_BAR_Y + 48;
+const RES_Y3 = LOADOUT_BAR_Y + 56;
 
 export default class LoadoutBar {
   constructor(scene, loadout) {
@@ -54,17 +66,16 @@ export default class LoadoutBar {
         const stats = unitsData.find(u => u.name === unitName);
         const { metal: m, silicon: s, batteries: b } = stats.cost;
 
-        // Unit name — top of slot, word-wrap for long names
-        label = this._scene.add.text(cx, LOADOUT_BAR_Y + 5, unitName, {
-          fontSize: '10px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
-          wordWrap: { width: LOADOUT_SLOT_W - 4 },
+        // Unit name — top of slot, split to two lines for compound names
+        label = this._scene.add.text(cx, LOADOUT_BAR_Y + 4, wrapSlotName(unitName), {
+          fontSize: '12px', color: '#ffffff', fontFamily: 'monospace', align: 'center',
         }).setOrigin(0.5, 0).setDepth(DEPTH_LOADOUT_TEXT);
 
         // Individual resource cost labels — stacked in bottom portion of slot
         const resYs = [RES_Y1, RES_Y2, RES_Y3];
         let resIdx  = 0;
         const makeResText = (str) => this._scene.add.text(cx, resYs[resIdx++], str, {
-          fontSize: '9px', color: '#dddddd', fontFamily: 'monospace', align: 'center',
+          fontSize: '10px', color: '#dddddd', fontFamily: 'monospace', align: 'center',
         }).setOrigin(0.5, 0.5).setDepth(DEPTH_LOADOUT_TEXT);
 
         if (m) metalText     = makeResText(`M:${m}`);
@@ -72,7 +83,7 @@ export default class LoadoutBar {
         if (b) batteriesText = makeResText(`B:${b}`);
         if (!m && !s && !b) {
           freeText = this._scene.add.text(cx, RES_Y2, 'Free', {
-            fontSize: '9px', color: '#88cc88', fontFamily: 'monospace', align: 'center',
+            fontSize: '10px', color: '#88cc88', fontFamily: 'monospace', align: 'center',
           }).setOrigin(0.5, 0.5).setDepth(DEPTH_LOADOUT_TEXT);
         }
 

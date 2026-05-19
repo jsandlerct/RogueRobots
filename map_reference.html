@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rogue Robots — Map Reference</title>
+<style>
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Segoe UI', sans-serif;
+    padding: 24px;
+    margin: 0;
+  }
+  h1 {
+    color: #00d4ff;
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    color: #888;
+    margin-bottom: 32px;
+    font-size: 0.9rem;
+  }
+  .grid-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+  }
+  .map-card {
+    background: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    width: 248px;
+  }
+  .map-name {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #00d4ff;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .map-desc {
+    font-size: 0.75rem;
+    color: #8899aa;
+    margin-bottom: 12px;
+    min-height: 2.4em;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #0f3460;
+    border-radius: 3px;
+  }
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #aaa;
+  }
+  .legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1px solid #333;
+  }
+</style>
+</head>
+<body>
+
+<h1>Rogue Robots — Map Reference</h1>
+<p class="subtitle">12 columns × 16 rows &nbsp;|&nbsp; NPC base: (0,0) top-left &nbsp;|&nbsp; Player base: (11,15) bottom-right</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#4a7c59"></div> Path (walkable)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#1e1e2e"></div> Wall (blocked)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c"></div> NPC Base (0,0)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#3498db"></div> Player Base (11,15)</div>
+</div>
+
+<br>
+
+<div class="grid-container" id="container"></div>
+
+<script>
+const MAPS = [
+  {
+    name: "Serpent",
+    desc: "Single winding snake path — tight turns, predictable route",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,0],
+      [0,0,0,0,0,0,0,0,0,0,1,0],
+      [0,1,1,1,1,1,1,1,1,1,1,0],
+      [0,1,0,0,0,0,0,0,0,0,0,0],
+      [0,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0],
+      [1,1,1,1,1,1,1,1,1,1,1,0],
+      [0,0,0,0,0,0,0,0,0,0,1,0],
+      [0,1,1,1,1,1,1,1,1,1,1,0],
+      [0,1,0,0,0,0,0,0,0,0,0,0],
+      [0,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+    ]
+  },
+  {
+    name: "Fork",
+    desc: "Two NPC lanes diverge then merge through player territory",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,0,0,0,0,0,0,0,0,0,1,0],
+      [1,1,1,1,1,1,1,1,1,1,1,0],
+      [0,0,0,0,0,0,0,0,0,0,1,0],
+      [0,1,1,1,1,1,1,1,1,1,1,0],
+      [0,1,0,0,0,0,0,0,0,0,0,0],
+      [0,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+    ]
+  },
+  {
+    name: "Grid",
+    desc: "Three full corridors (L/M/R) connected by horizontal cross-bars",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,0,0,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+    ]
+  },
+  {
+    name: "DualLane",
+    desc: "Two edge corridors (left col 0, right col 11) with open connectors",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+    ]
+  },
+  {
+    name: "OpenField",
+    desc: "Mostly open with scattered 2×2 wall clusters — free pathfinding",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,0,1,1,1,0,0,1,1,1],
+      [1,1,0,0,1,1,1,0,0,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,1,1,1,1,1,1,0,0,1],
+      [1,0,0,1,1,1,1,1,1,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,0,0,1,1,1,0,0,1,1,1],
+      [1,1,0,0,1,1,1,0,0,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,1,1,1,1,1,1,0,0,1],
+      [1,0,0,1,1,1,1,1,1,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+    ]
+  },
+  {
+    name: "Labyrinth",
+    desc: "Single complex winding path — many tight turns, one valid route",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,0],
+      [0,0,0,0,0,0,0,0,0,0,1,0],
+      [0,0,1,1,1,1,1,1,1,1,1,0],
+      [0,0,1,0,0,0,0,0,0,0,0,0],
+      [0,0,1,1,1,1,1,1,1,0,0,0],
+      [0,0,0,0,0,0,0,0,1,0,0,0],
+      [0,0,0,0,0,1,1,1,1,0,0,0],
+      [0,0,0,0,0,1,0,0,0,0,0,0],
+      [0,0,0,0,0,1,1,1,1,1,0,0],
+      [0,0,0,0,0,0,0,0,0,1,0,0],
+      [0,0,0,1,1,1,1,1,1,1,0,0],
+      [0,0,0,1,0,0,0,0,0,0,0,0],
+      [0,0,0,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+    ]
+  },
+  {
+    name: "Bottleneck",
+    desc: "Open halves divided by a wall with two chokepoint passages",
+    grid: [
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,1,1,0,0,0,1,1,0,0],
+      [0,0,0,1,1,0,0,0,1,1,0,0],
+      [0,0,0,1,1,0,0,0,1,1,0,0],
+      [0,0,0,1,1,0,0,0,1,1,0,0],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+    ]
+  },
+  {
+    name: "Staircase",
+    desc: "Three tall vertical corridors linked by short horizontal connectors — Labyrinth-style with vertical sweeps",
+    grid: [
+      [1,0,0,0,0,0,0,0,0,0,0,0],
+      [1,0,0,0,1,1,1,1,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,0,0,0],
+      [1,0,0,0,1,0,0,0,1,1,1,1],
+      [1,1,1,1,1,0,0,0,0,0,0,1],
+      [0,0,0,0,0,0,0,0,0,0,0,1],
+    ]
+  },
+  {
+    name: "Crossroads",
+    desc: "Plus-sign cross: vertical arm (cols 5-6) meets horizontal arm (rows 7-8)",
+    grid: [
+      [1,1,1,1,1,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,0,0,0,0,0],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,0,0,0,0,1],
+      [0,0,0,0,0,1,1,1,1,1,1,1],
+    ]
+  },
+  {
+    name: "Gauntlet",
+    desc: "Two paths form an X — they cross at the vertical midpoint (rows 7–8, cols 5–6)",
+    grid: [
+      [1,1,1,1,1,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,0,0,0,0,1,0,0,0,0,0,0],
+      [1,1,1,1,1,1,1,0,0,0,0,0],
+      [0,0,0,0,0,1,1,1,1,1,1,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,0,0,0,0,1],
+      [0,0,0,0,0,0,1,1,1,1,1,1],
+    ]
+  },
+];
+
+const COLS = 12;
+const ROWS = 16;
+const CELL = 18;
+const W = COLS * CELL;
+const H = ROWS * CELL;
+
+const COLOR_WALL   = '#1e1e2e';
+const COLOR_PATH   = '#4a7c59';
+const COLOR_NPC    = '#e74c3c';
+const COLOR_PLAYER = '#3498db';
+const COLOR_GRID   = '#0d0d1a';
+
+function renderMap(canvas, map) {
+  const ctx = canvas.getContext('2d');
+  canvas.width  = W;
+  canvas.height = H;
+
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const isPath = map.grid[r][c] === 1;
+      ctx.fillStyle = isPath ? COLOR_PATH : COLOR_WALL;
+      ctx.fillRect(c * CELL, r * CELL, CELL, CELL);
+
+      // subtle grid lines
+      ctx.strokeStyle = COLOR_GRID;
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(c * CELL, r * CELL, CELL, CELL);
+    }
+  }
+
+  // NPC base marker at (col 0, row 0)
+  ctx.fillStyle = COLOR_NPC;
+  ctx.fillRect(0, 0, CELL, CELL);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${CELL - 5}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('N', CELL / 2, CELL / 2);
+
+  // Player base marker at (col 11, row 15)
+  ctx.fillStyle = COLOR_PLAYER;
+  ctx.fillRect(11 * CELL, 15 * CELL, CELL, CELL);
+  ctx.fillStyle = '#fff';
+  ctx.fillText('P', 11 * CELL + CELL / 2, 15 * CELL + CELL / 2);
+}
+
+const container = document.getElementById('container');
+
+MAPS.forEach(map => {
+  const card = document.createElement('div');
+  card.className = 'map-card';
+
+  const name = document.createElement('div');
+  name.className = 'map-name';
+  name.textContent = map.name;
+
+  const desc = document.createElement('div');
+  desc.className = 'map-desc';
+  desc.textContent = map.desc;
+
+  const canvas = document.createElement('canvas');
+  card.appendChild(name);
+  card.appendChild(desc);
+  card.appendChild(canvas);
+  container.appendChild(card);
+
+  renderMap(canvas, map);
+});
+</script>
+</body>
+</html>

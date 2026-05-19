@@ -66,6 +66,8 @@ export default class GameScene extends Phaser.Scene {
     this._startingResources = data?.startingResources ?? null;
     this._xpThisRound       = 0;
     this._levelUpsThisRound = [];
+    this._tooltipPaused     = false;
+    this._powerupSlots      = data?.powerupSlots ?? [null, null, null];
     this._passive           = this._getActivePassive(this._character?.level ?? 0);
     this._floorConfig       = floorsData.find(f => f.floor === this._floor) ?? DEFAULT_FLOOR_CONFIG;
   }
@@ -141,11 +143,16 @@ export default class GameScene extends Phaser.Scene {
     this._spawnToken();
 
     this._powerupSystem = new PowerupSystem(this, {
-      grid:      this._grid,
-      getTokens: () => this._tokens,
-      addToken:  (t) => { this._tokens.push(t); this._wakeIdleScavengers(); },
+      grid:         this._grid,
+      getTokens:    () => this._tokens,
+      addToken:     (t) => { this._tokens.push(t); this._wakeIdleScavengers(); },
+      initialSlots: this._powerupSlots,
     });
-    this._powerupBar = new PowerupBar(this, (i) => this._onPowerupSlotTapped(i));
+    this._powerupBar = new PowerupBar(this,
+      (i) => this._onPowerupSlotTapped(i),
+      () => this._pauseForTooltip(),
+      () => this._resumeFromTooltip()
+    );
     this._powerupBar.refresh(this._powerupSystem.slots);
 
     this.time.addEvent({
@@ -173,8 +180,22 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  _pauseForTooltip() {
+    if (this._tooltipPaused || this._roundOver) return;
+    this._tooltipPaused = true;
+    this.time.paused = true;
+    this.tweens.pauseAll();
+  }
+
+  _resumeFromTooltip() {
+    if (!this._tooltipPaused) return;
+    this._tooltipPaused = false;
+    this.time.paused = false;
+    this.tweens.resumeAll();
+  }
+
   update() {
-    if (this._roundOver) return;
+    if (this._roundOver || this._tooltipPaused) return;
 
     if (this._roundStartTime === null) this._roundStartTime = this.time.now;
 
@@ -713,10 +734,11 @@ export default class GameScene extends Phaser.Scene {
     btn.on('pointerdown', () => {
       if (isWin && !isRunEnd) {
         this.scene.start('DraftScene', {
-          character: this._character,
-          slotIndex: this._slotIndex,
-          testMode:  this._testMode,
-          floor:     this._floor + 1,
+          character:    this._character,
+          slotIndex:    this._slotIndex,
+          testMode:     this._testMode,
+          floor:        this._floor + 1,
+          powerupSlots: this._powerupSystem.slots,
         });
       } else {
         this.scene.start('CharacterSelectScene');
@@ -749,10 +771,9 @@ export default class GameScene extends Phaser.Scene {
     const now = this.time.now;
     for (const unit of this.units) {
       if (!unit.alive || unit.team !== 'npc') continue;
-      if (unit.row < DIVIDE_ROW) continue;
       unit._empStunUntil = now + POWERUP_EMP_DURATION_MS;
     }
-    this._showFeedback('EMP BLAST! Enemies stunned 3s');
+    this._showFeedback('EMP BLAST! Enemies stunned 5s');
   }
 
   _activateAirstrike() {
@@ -782,9 +803,12 @@ export default class GameScene extends Phaser.Scene {
     const stats = unitsData.find(u => u.name === 'Bug');
     if (!stats) return;
     for (let i = 0; i < POWERUP_SURGE_COUNT; i++) {
-      this._deployUnit('Bug', PLAYER_BASE_COL, PLAYER_BASE_ROW, stats);
+      this.time.delayedCall(i * 500, () => {
+        if (this._roundOver) return;
+        this._deployUnit('Bug', PLAYER_BASE_COL, PLAYER_BASE_ROW, stats);
+      });
     }
-    this._showFeedback('SURGE! +5 units deployed');
+    this._showFeedback('SURGE! +5 units deploying...');
   }
 
   _activateFortify() {

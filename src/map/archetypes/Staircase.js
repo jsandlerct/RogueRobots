@@ -1,27 +1,31 @@
-// Single path cascading diagonally from top-left to bottom-right in a staircase pattern.
-// Path: (0,0)→(4,0)→(4,4)→(8,4)→(8,8)→(11,8)→(11,11)→(9,11)→(9,15)→(11,15)
+// Three tall vertical corridors connected by short horizontal runs — Labyrinth-style
+// but with long vertical sweeps instead of horizontal ones.
+// Path: (0,0)→col 0 down to row 14→row 14 right to col 4→col 4 up to row 1→
+//        row 1 right to col 8→col 8 down to row 13→row 13 right to col 11→col 11 down to row 15
 // NPC base: (0,0)  Player base: (11,15)
 
 const GRID = [
-  [1,1,1,1,1,0,0,0,0,0,0,0], // row  0 — NPC base, right to col 4
-  [0,0,0,0,1,0,0,0,0,0,0,0], // row  1 — col 4 down
-  [0,0,0,0,1,0,0,0,0,0,0,0], // row  2
-  [0,0,0,0,1,0,0,0,0,0,0,0], // row  3
-  [0,0,0,0,1,1,1,1,1,0,0,0], // row  4 — right to col 8
-  [0,0,0,0,0,0,0,0,1,0,0,0], // row  5 — col 8 down
-  [0,0,0,0,0,0,0,0,1,0,0,0], // row  6
-  [0,0,0,0,0,0,0,0,1,0,0,0], // row  7
-  [0,0,0,0,0,0,0,0,1,1,1,1], // row  8 — right to col 11
-  [0,0,0,0,0,0,0,0,0,0,0,1], // row  9 — col 11 down
-  [0,0,0,0,0,0,0,0,0,0,0,1], // row 10
-  [0,0,0,0,0,0,0,0,0,1,1,1], // row 11 — left to col 9
-  [0,0,0,0,0,0,0,0,0,1,0,0], // row 12 — col 9 down
-  [0,0,0,0,0,0,0,0,0,1,0,0], // row 13
-  [0,0,0,0,0,0,0,0,0,1,0,0], // row 14
-  [0,0,0,0,0,0,0,0,0,1,1,1], // row 15 — right to col 11 (Player base)
+  [1,0,0,0,0,0,0,0,0,0,0,0], // row  0 — NPC base, col 0 start
+  [1,0,0,0,1,1,1,1,1,0,0,0], // row  1 — connector: col 4 to col 8
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  2 — col 0, col 4, col 8 down
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  3
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  4
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  5
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  6
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  7
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  8
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row  9
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row 10
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row 11
+  [1,0,0,0,1,0,0,0,1,0,0,0], // row 12
+  [1,0,0,0,1,0,0,0,1,1,1,1], // row 13 — connector: col 8 to col 11
+  [1,1,1,1,1,0,0,0,0,0,0,1], // row 14 — connector: col 0 to col 4; col 11 continues down
+  [0,0,0,0,0,0,0,0,0,0,0,1], // row 15 — Player base at col 11
 ];
 
-// No getPaths() — EasyStar follows the single staircase route.
+// No getPaths() — EasyStar follows the single winding vertical route.
 export default class Staircase {
-  getGrid() { return GRID; }
+  getGrid() {
+    return GRID;
+  }
 }

@@ -182,7 +182,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     const raw = window.prompt('Enter a name for your new character:');
     if (!raw || !raw.trim()) return;
     const name = raw.trim().slice(0, CHARSEL_MAX_NAME_LEN);
-    this._saves[slotIndex] = { name, level: 1, xp: 0 };
+    this._saves[slotIndex] = { name, level: 1, xp: 0, highestFloor: 1 };
     persistSaves(this._saves);
     this._selected = slotIndex;
     this._refreshAllSlots();

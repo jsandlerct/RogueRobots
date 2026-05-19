@@ -8,6 +8,7 @@ import {
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
   DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
   DRAFT_COLOR_BG, DRAFT_COLOR_SLOT_EMPTY, DRAFT_COLOR_CONFIRM_BG, DRAFT_COLOR_LOCKED,
+  DRAFT_SAVE_KEY,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
 import floorsData from '../data/floors.json';
@@ -43,6 +44,7 @@ export default class DraftScene extends Phaser.Scene {
     this._character = data?.character ?? null;
     this._slotIndex = data?.slotIndex ?? null;
     this._floor     = data?.floor     ?? 1;
+    this._powerupSlots = data?.powerupSlots ?? [null, null, null];
     this._startingResources = data?.startingResources
       ?? (this._testMode ? TESTMODE_RESOURCES : _rollStartingResources(this._character?.level ?? 1));
   }
@@ -104,31 +106,31 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '15px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    this.add.text(cx, 28, aiName.toUpperCase(), {
-      fontSize: '13px', color: '#ff9999', fontFamily: 'monospace', fontStyle: 'bold',
+    this.add.text(cx, 26, `vs ${aiName.toUpperCase()}`, {
+      fontSize: '12px', color: '#ff9999', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     if (favUnit) {
-      this.add.text(cx, 47, `Favorite robot: ${favUnit}`, {
-        fontSize: '9px', color: '#ffcccc', fontFamily: 'monospace',
+      this.add.text(cx, 44, `Favorite robot: ${favUnit}`, {
+        fontSize: '13px', color: '#ffcccc', fontFamily: 'monospace',
       }).setOrigin(0.5, 0);
     }
 
     if (quote) {
       this.add.text(cx, 62, `"${quote}"`, {
-        fontSize: '8px', color: '#aabbcc', fontFamily: 'monospace', fontStyle: 'italic',
+        fontSize: '12px', color: '#aabbcc', fontFamily: 'monospace', fontStyle: 'italic',
         align: 'center', wordWrap: { width: CANVAS_W - 24 },
       }).setOrigin(0.5, 0);
     }
 
     const res    = this._startingResources;
     const resStr = `Starting Resources:  M:${res.metal}  Si:${res.silicon}  B:${res.batteries}`;
-    this.add.text(cx, 80, resStr, {
+    this.add.text(cx, 90, resStr, {
       fontSize: '13px', color: '#ffdd88', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     const subtitle = this._testMode ? '── ALL UNITS UNLOCKED (TEST MODE) ──' : '── SELECT UNITS (Lvl 1 unlocked) ──';
-    this.add.text(cx, 100, subtitle, {
+    this.add.text(cx, 110, subtitle, {
       fontSize: '9px', color: this._testMode ? '#ff9900' : '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
   }
@@ -193,7 +195,7 @@ export default class DraftScene extends Phaser.Scene {
       }).setDepth(3);
 
       const btnMinus = this.add.text(x + 6, y + 44, '[-]', {
-        fontSize: '10px', color: '#cc4444', fontFamily: 'monospace',
+        fontSize: '13px', color: '#cc4444', fontFamily: 'monospace',
       }).setDepth(3).setInteractive({ useHandCursor: true });
       btnMinus.on('pointerdown', () => this._decrement(unit.name));
 
@@ -203,7 +205,7 @@ export default class DraftScene extends Phaser.Scene {
       this._countTexts[unit.name] = countTxt;
 
       const btnPlus = this.add.text(x + 58, y + 44, '[+]', {
-        fontSize: '10px', color: '#44cc44', fontFamily: 'monospace',
+        fontSize: '13px', color: '#44cc44', fontFamily: 'monospace',
       }).setDepth(3).setInteractive({ useHandCursor: true });
       btnPlus.on('pointerdown', () => this._increment(unit.name));
     }
@@ -223,10 +225,33 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _buildLoadoutSlots() {
-    const unlocked = this._unlockedSlots;
-    this.add.text(CANVAS_W / 2, DRAFT_SLOT_Y - 22, '── YOUR LOADOUT ──', {
+    const unlocked  = this._unlockedSlots;
+    const rightEdge = SLOT_START_X + SLOT_TOTAL_W;
+
+    this.add.text(CANVAS_W / 2, DRAFT_SLOT_Y - 14, '── YOUR LOADOUT ──', {
       fontSize: '9px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
+
+    const clearBtn = this.add.text(SLOT_START_X, DRAFT_SLOT_Y - 14, '[ Clear ]', {
+      fontSize: '9px', color: '#cc6666', fontFamily: 'monospace',
+    }).setOrigin(0, 0).setDepth(2).setInteractive({ useHandCursor: true });
+    clearBtn.on('pointerover', () => clearBtn.setColor('#ff8888'));
+    clearBtn.on('pointerout',  () => clearBtn.setColor('#cc6666'));
+    clearBtn.on('pointerdown', () => this._clearLoadout());
+
+    const loadBtn = this.add.text(rightEdge, DRAFT_SLOT_Y - 14, '[ Load ]', {
+      fontSize: '9px', color: '#6688cc', fontFamily: 'monospace',
+    }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
+    loadBtn.on('pointerover', () => loadBtn.setColor('#88aaff'));
+    loadBtn.on('pointerout',  () => loadBtn.setColor('#6688cc'));
+    loadBtn.on('pointerdown', () => this._loadDraft());
+
+    this._saveBtn = this.add.text(rightEdge - 54, DRAFT_SLOT_Y - 14, '[ Save ]', {
+      fontSize: '9px', color: '#6688cc', fontFamily: 'monospace',
+    }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
+    this._saveBtn.on('pointerover', () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#88aaff'); });
+    this._saveBtn.on('pointerout',  () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#6688cc'); });
+    this._saveBtn.on('pointerdown', () => this._saveDraft());
 
     for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
       const x = SLOT_START_X + i * (DRAFT_SLOT_W + DRAFT_SLOT_MARGIN);
@@ -313,6 +338,11 @@ export default class DraftScene extends Phaser.Scene {
     this._refresh();
   }
 
+  _clearLoadout() {
+    for (const name of Object.keys(this._counts)) this._counts[name] = 0;
+    this._refresh();
+  }
+
   _confirm() {
     if (this._total === 0) return;
     this.scene.start('GameScene', {
@@ -322,7 +352,30 @@ export default class DraftScene extends Phaser.Scene {
       slotIndex:         this._slotIndex,
       floor:             this._floor,
       startingResources: this._startingResources,
+      powerupSlots:      this._powerupSlots,
     });
+  }
+
+  _saveDraft() {
+    localStorage.setItem(DRAFT_SAVE_KEY, JSON.stringify(this._counts));
+    this._saveBtn.setColor('#44cc88');
+    this.time.delayedCall(800, () => this._saveBtn.setColor('#6688cc'));
+  }
+
+  _loadDraft() {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(DRAFT_SAVE_KEY) || 'null'); } catch { return; }
+    if (!saved) return;
+    for (const name of Object.keys(this._counts)) this._counts[name] = 0;
+    for (const [name, count] of Object.entries(saved)) {
+      if (name in this._counts && count > 0) this._counts[name] = count;
+    }
+    while (this._total > this._unlockedSlots) {
+      const keys = Object.keys(this._counts).filter(k => this._counts[k] > 0);
+      if (!keys.length) break;
+      this._counts[keys[keys.length - 1]]--;
+    }
+    this._refresh();
   }
 
   _refresh() {

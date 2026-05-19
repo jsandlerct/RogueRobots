@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rogue Robots — Unit Reference</title>
+<style>
+  body { background: #111; color: #ddd; font-family: monospace; padding: 20px; }
+  h1 { color: #fff; margin-bottom: 4px; }
+  p.subtitle { color: #888; margin: 0 0 20px; font-size: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th { background: #222; color: #aaa; padding: 6px 8px; text-align: left; border-bottom: 2px solid #444; white-space: nowrap; }
+  td { padding: 5px 8px; border-bottom: 1px solid #2a2a2a; white-space: nowrap; vertical-align: middle; }
+  tr:hover td { background: #1a1a1a; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: middle; margin-right: 6px; border: 1px solid #555; }
+  .tag-drop { background: #2a4a2a; color: #88cc88; padding: 1px 5px; border-radius: 3px; }
+  .tag-base { background: #2a2a4a; color: #8888cc; padding: 1px 5px; border-radius: 3px; }
+  .special { color: #cc9944; font-style: italic; }
+  .num { text-align: right; }
+  .dim { color: #555; }
+  .unlock { color: #888; }
+  thead tr { position: sticky; top: 0; }
+  .cost-cell { color: #bbb; }
+  .metal { color: #aaa; }
+  .silicon { color: #66ccff; }
+  .bat { color: #ffcc44; }
+</style>
+</head>
+<body>
+<h1>Rogue Robots — Unit Reference</h1>
+<p class="subtitle">Generated from src/data/units.json</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Name</th>
+      <th>Spawn</th>
+      <th title="Metal / Silicon / Batteries">Cost (M/Si/Ba)</th>
+      <th>HP</th>
+      <th>Dmg</th>
+      <th>Range</th>
+      <th>Armor</th>
+      <th>Move</th>
+      <th>Atk</th>
+      <th>Cooldown</th>
+      <th>Special</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="unlock dim">—</td>
+      <td><span class="swatch" style="background:#888888"></span>Bug</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">0</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">3</td><td class="num">1</td><td class="num">1</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td class="dim">—</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">1</td>
+      <td><span class="swatch" style="background:#2255cc"></span>Punchbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">3</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">5</td><td class="num">2</td><td class="num">1</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td>5s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">2</td>
+      <td><span class="swatch" style="background:#00aacc"></span>Zapbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">3</span> / <span class="silicon">0</span> / <span class="bat">1</span></td>
+      <td class="num">3</td><td class="num">2</td><td class="num">3</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td>5s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">3</td>
+      <td><span class="swatch" style="background:#ccaa00"></span>Scavenger</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">1</span> / <span class="silicon">1</span> / <span class="bat">0</span></td>
+      <td class="num">1</td><td class="num">1</td><td class="num">1</td><td class="num">0</td>
+      <td>Fast</td><td>Slow</td>
+      <td>5s</td>
+      <td class="special">Paths to nearest resource instead of base</td>
+    </tr>
+    <tr>
+      <td class="unlock">4</td>
+      <td><span class="swatch" style="background:#cc2222"></span>Boombot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">3</span> / <span class="silicon">1</span> / <span class="bat">1</span></td>
+      <td class="num">3</td><td class="num">10</td><td class="num">1</td><td class="num">0</td>
+      <td>Fast</td><td>Fast</td>
+      <td>5s</td>
+      <td class="special">AoE dmg on first attack; self-destructs</td>
+    </tr>
+    <tr>
+      <td class="unlock">5</td>
+      <td><span class="swatch" style="background:#882299"></span>Zap Tower</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">2</span> / <span class="bat">5</span></td>
+      <td class="num">5</td><td class="num">2</td><td class="num">3</td><td class="num">1</td>
+      <td>None</td><td>Medium</td>
+      <td>10s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">6</td>
+      <td><span class="swatch" style="background:#cc7722"></span>Floatbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">2</span> / <span class="silicon">2</span> / <span class="bat">2</span></td>
+      <td class="num">3</td><td class="num">2</td><td class="num">1</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td>7s</td>
+      <td class="special">Flies in straight line; only attackable at range &gt;1</td>
+    </tr>
+    <tr>
+      <td class="unlock">7</td>
+      <td><span class="swatch" style="background:#771111"></span>Boomtrap</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">3</td><td class="num">10</td><td class="num">1</td><td class="num">0</td>
+      <td>None</td><td>None</td>
+      <td>20s</td>
+      <td class="special">AoE dmg when enemy enters range; self-destructs</td>
+    </tr>
+    <tr>
+      <td class="unlock">8</td>
+      <td><span class="swatch" style="background:#cc2222"></span>Cannonbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">10</span> / <span class="silicon">5</span> / <span class="bat">5</span></td>
+      <td class="num">10</td><td class="num">5</td><td class="num">5</td><td class="num">1</td>
+      <td>Slow</td><td>Slow</td>
+      <td>30s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">9</td>
+      <td><span class="swatch" style="background:#666666"></span>Wallbot</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">15</td><td class="num">0</td><td class="num">1</td><td class="num">0</td>
+      <td>None</td><td>None</td>
+      <td>25s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">11</td>
+      <td><span class="swatch" style="background:#aaaaaa"></span>Datamine</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">3</span> / <span class="silicon">3</span> / <span class="bat">3</span></td>
+      <td class="num">5</td><td class="num">0</td><td class="num">1</td><td class="num">0</td>
+      <td>None</td><td>None</td>
+      <td>30s</td>
+      <td class="special">Delivers 1 of each resource every 5s</td>
+    </tr>
+    <tr>
+      <td class="unlock">12</td>
+      <td><span class="swatch" style="background:#226633"></span>Snipebot</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">0</span> / <span class="bat">3</span></td>
+      <td class="num">3</td><td class="num">5</td><td class="num">7</td><td class="num">0</td>
+      <td>Slow</td><td>Slow</td>
+      <td>10s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">13</td>
+      <td><span class="swatch" style="background:#336644"></span>Commando</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">5</td><td class="num">2</td><td class="num">1</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td>5s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">14</td>
+      <td><span class="swatch" style="background:#999999"></span>Spawnbot</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">3</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">3</td><td class="num">0</td><td class="num">1</td><td class="num">0</td>
+      <td>None</td><td>None</td>
+      <td>10s</td>
+      <td class="special">After 5s self-destructs and spawns 3 Bugs</td>
+    </tr>
+    <tr>
+      <td class="unlock">16</td>
+      <td><span class="swatch" style="background:#777777"></span>Spambot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">1</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">2</td><td class="num">1</td><td class="num">1</td><td class="num">0</td>
+      <td>Fast</td><td>Medium</td>
+      <td>1s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">17</td>
+      <td><span class="swatch" style="background:#226633"></span>Snipe Tower</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">10</span> / <span class="silicon">4</span> / <span class="bat">5</span></td>
+      <td class="num">5</td><td class="num">7</td><td class="num">7</td><td class="num">1</td>
+      <td>None</td><td>Slow</td>
+      <td>25s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">18</td>
+      <td><span class="swatch" style="background:#112266"></span>Tankbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">7</span> / <span class="silicon">0</span> / <span class="bat">0</span></td>
+      <td class="num">7</td><td class="num">2</td><td class="num">1</td><td class="num">0</td>
+      <td>Slow</td><td>Medium</td>
+      <td>7s</td>
+      <td class="dim">—</td>
+    </tr>
+    <tr>
+      <td class="unlock">19</td>
+      <td><span class="swatch" style="background:#ccaa00"></span>Spawn Tower</td>
+      <td><span class="tag-drop">Drop</span></td>
+      <td class="cost-cell"><span class="metal">12</span> / <span class="silicon">7</span> / <span class="bat">7</span></td>
+      <td class="num">5</td><td class="num">2</td><td class="num">3</td><td class="num">1</td>
+      <td>None</td><td>Medium</td>
+      <td>20s</td>
+      <td class="special">Zap Tower that spawns a Bug every 5s</td>
+    </tr>
+    <tr>
+      <td class="unlock">21</td>
+      <td><span class="swatch" style="background:#1a3388"></span>Carrierbot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">15</span> / <span class="silicon">5</span> / <span class="bat">3</span></td>
+      <td class="num">10</td><td class="num">1</td><td class="num">2</td><td class="num">1</td>
+      <td>V.Slow</td><td>Slow</td>
+      <td>30s</td>
+      <td class="special">Spawns a Punchbot every 10s</td>
+    </tr>
+    <tr>
+      <td class="unlock">22</td>
+      <td><span class="swatch" style="background:#ff8800"></span>Medibot</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">5</span> / <span class="silicon">15</span> / <span class="bat">10</span></td>
+      <td class="num">3</td><td class="num">1</td><td class="num">3</td><td class="num">0</td>
+      <td>Medium</td><td>Medium</td>
+      <td>10s</td>
+      <td class="special">Does not attack; heals a damaged bot every 3s</td>
+    </tr>
+    <tr>
+      <td class="unlock">24</td>
+      <td><span class="swatch" style="background:#991122"></span>Juggernaut</td>
+      <td><span class="tag-base">Base</span></td>
+      <td class="cost-cell"><span class="metal">20</span> / <span class="silicon">5</span> / <span class="bat">10</span></td>
+      <td class="num">20</td><td class="num">7</td><td class="num">2</td><td class="num">2</td>
+      <td>V.Slow</td><td>Slow</td>
+      <td>45s</td>
+      <td class="dim">—</td>
+    </tr>
+  </tbody>
+</table>
+<p style="margin-top:16px;color:#555;font-size:11px;">Cost legend: <span class="metal">Metal</span> / <span class="silicon">Silicon</span> / <span class="bat">Batteries</span> &nbsp;|&nbsp; Cooldown = draft deploy cooldown</p>
+</body>
+</html>

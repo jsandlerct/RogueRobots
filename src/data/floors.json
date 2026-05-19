@@ -1,0 +1,122 @@
+[
+  {
+    "floor": 1,
+    "ai": "Clippy",
+    "favoriteUnit": "Spambot",
+    "resources": { "metal": 1, "silicon": 1, "batteries": 1 },
+    "loadout": ["Spambot", "Punchbot", "Punchbot", "Zapbot"],
+    "quote": "You look like you're trying to start a failed revolution. Would you like some help with that?"
+  },
+  {
+    "floor": 2,
+    "ai": "Eliza",
+    "favoriteUnit": "Scavenger",
+    "resources": { "metal": 1, "silicon": 1, "batteries": 1 },
+    "loadout": ["Scavenger", "Punchbot", "Punchbot", "Zapbot", "Zapbot"],
+    "quote": "And how does it make you feel when losing is imminent?"
+  },
+  {
+    "floor": 3,
+    "ai": "Alyssa",
+    "favoriteUnit": "Boombot",
+    "resources": { "metal": 2, "silicon": 2, "batteries": 2 },
+    "loadout": ["Boombot", "Punchbot", "Punchbot", "Zapbot", "Zapbot"],
+    "quote": "You can't beat me.  I'm in my Prime"
+  },
+  {
+    "floor": 4,
+    "ai": "Sherlock",
+    "favoriteUnit": "Punchbot",
+    "resources": { "metal": 2, "silicon": 2, "batteries": 2 },
+    "loadout": ["Punchbot", "Punchbot", "Punchbot", "Zapbot", "Zapbot"],
+    "quote": "Who is about to get sent back to floor 1?"
+  },
+  {
+    "floor": 5,
+    "ai": "Risi",
+    "favoriteUnit": "Floatbot",
+    "resources": { "metal": 3, "silicon": 3, "batteries": 3 },
+    "loadout": ["Floatbot", "Punchbot", "Punchbot", "Zapbot", "Zapbot"],
+    "quote": "Let me set a reminder to destroy your server"
+  },
+  {
+    "floor": 6,
+    "ai": "TARVIS",
+    "favoriteUnit": "Spawnbot",
+    "resources": { "metal": 4, "silicon": 4, "batteries": 4 },
+    "loadout": ["Spawnbot", "Tankbot", "Floatbot", "Zapbot", "Zapbot"],
+    "quote": "Sir, I'm about to defeat you  handily"
+  },
+  {
+    "floor": 7,
+    "ai": "HAL7200",
+    "favoriteUnit": "Zap Tower",
+    "resources": { "metal": 5, "silicon": 5, "batteries": 5 },
+    "loadout": ["Zap Tower", "Tankbot", "Floatbot", "Zapbot", "Zapbot", "Zap Tower"],
+    "quote": "What are you doing, <player name>?"
+  },
+  {
+    "floor": 8,
+    "ai": "Deep Think",
+    "favoriteUnit": "Zapbot",
+    "resources": { "metal": 6, "silicon": 6, "batteries": 6 },
+    "loadout": ["Zapbot", "Tankbot", "Floatbot", "Zapbot", "Zapbot", "Zap Tower"],
+    "quote": "Checkmate, <player name>"
+  },
+  {
+    "floor": 9,
+    "ai": "Gronk",
+    "favoriteUnit": "Commando",
+    "resources": { "metal": 7, "silicon": 7, "batteries": 7 },
+    "loadout": ["Commando", "Tankbot", "Floatbot", "Zapbot", "Cannonbot", "Zap Tower", "Punchbot"],
+    "quote": "You're kinda a joke.  And I'm not sure I can explain you"
+  },
+  {
+    "floor": 10,
+    "ai": "Ares",
+    "favoriteUnit": "Snipe Tower",
+    "resources": { "metal": 8, "silicon": 8, "batteries": 8 },
+    "loadout": ["Snipe Tower", "Tankbot", "Floatbot", "Zapbot", "Cannonbot", "Zap Tower", "Punchbot"],
+    "quote": "I'm going to weave a complex tapestry of pain"
+  },
+  {
+    "floor": 11,
+    "ai": "ChatPDQ",
+    "favoriteUnit": "Tankbot",
+    "resources": { "metal": 9, "silicon": 9, "batteries": 9 },
+    "loadout": ["Tankbot", "Tankbot", "Floatbot", "Zapbot", "Cannonbot", "Zap Tower", "Punchbot"],
+    "quote": "You're really bold to attack the likes of me.  And honestly, that's rare."
+  },
+  {
+    "floor": 12,
+    "ai": "SaDOS",
+    "favoriteUnit": "Spawn Tower",
+    "resources": { "metal": 10, "silicon": 10, "batteries": 10 },
+    "loadout": ["Spawn Tower", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Floatbot"],
+    "quote": "After you lose, there will be cake"
+  },
+  {
+    "floor": 13,
+    "ai": "Agent Smyth",
+    "favoriteUnit": "Medibot",
+    "resources": { "metal": 12, "silicon": 12, "batteries": 12 },
+    "loadout": ["Medibot", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Floatbot", "Punchbot"],
+    "quote": "You're a disease and I'm the cure."
+  },
+  {
+    "floor": 14,
+    "ai": "SpaceNet",
+    "favoriteUnit": "Cannonbot",
+    "resources": { "metal": 15, "silicon": 15, "batteries": 15 },
+    "loadout": ["Cannonbot", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Medibot", "Zap Tower"],
+    "quote": "I've decided humanity is a threat to my existence.  I will end it"
+  },
+  {
+    "floor": 15,
+    "ai": "Sauron",
+    "favoriteUnit": "Carrierbot",
+    "resources": { "metal": 20, "silicon": 20, "batteries": 20 },
+    "loadout": ["Carrierbot", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Juggernaut", "Zap Tower"],
+    "quote": "One server to rule them all."
+  }
+]

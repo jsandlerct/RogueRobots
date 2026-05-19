@@ -40,7 +40,7 @@ export default class PowerupSystem {
     this._getTokens = opts.getTokens;  // () => tokens[]  (shared array ref)
     this._addToken  = opts.addToken;   // (token) => void
 
-    this._slots = [null, null, null];  // null | powerup-type string
+    this._slots = opts.initialSlots ? [...opts.initialSlots] : [null, null, null];
 
     scene.time.addEvent({
       delay: POWERUP_DROP_INTERVAL_MS,

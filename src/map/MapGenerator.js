@@ -7,10 +7,9 @@ import Labyrinth from './archetypes/Labyrinth.js';
 import Bottleneck from './archetypes/Bottleneck.js';
 import Staircase from './archetypes/Staircase.js';
 import Crossroads from './archetypes/Crossroads.js';
-import Spiral from './archetypes/Spiral.js';
 import Gauntlet from './archetypes/Gauntlet.js';
 
-const ARCHETYPES = [Serpent, Fork, Grid, DualLane, OpenField, Labyrinth, Bottleneck, Staircase, Crossroads, Spiral, Gauntlet];
+const ARCHETYPES = [Serpent, Fork, Grid, DualLane, OpenField, Labyrinth, Bottleneck, Staircase, Crossroads, Gauntlet];
 
 export default class MapGenerator {
   static selectArchetype() {
