@@ -117,6 +117,7 @@ export const DEPTH_ROUND_END_BG       = 20;
 export const DEPTH_ROUND_END_TEXT     = 21;
 export const DEPTH_ROUND_END_BTN      = 22;
 export const DEPTH_FEEDBACK           = 30;
+export const DEPTH_DRAG_GHOST         = 55;
 
 // ── Loadout bar (player — bottom) ─────────────────────────────────────────────
 export const LOADOUT_SLOT_W      = 54;   // 8 × 54 = 432 = BOARD_W
@@ -147,14 +148,15 @@ export const DRAFT_CARD_W           = 128;  // 4 cols: (552 - 5×8) / 4
 export const DRAFT_CARD_H           = 62;
 export const DRAFT_CARD_PAD         = 8;
 export const DRAFT_CARD_ROW_Y       = [122, 189, 256, 323, 390];
-export const DRAFT_SLOT_Y           = 490;
+export const DRAFT_SLOT_Y           = 506;
 export const DRAFT_SLOT_W           = 56;
 export const DRAFT_SLOT_H           = 50;
 export const DRAFT_SLOT_MARGIN      = 3;
-export const DRAFT_CONFIRM_Y        = 558;
+export const DRAFT_PASSIVE_Y        = 562;
+export const DRAFT_CONFIRM_Y        = 598;
 export const DRAFT_CONFIRM_BTN_W    = 160;
 export const DRAFT_CONFIRM_BTN_H    = 36;
-export const DRAFT_TESTMODE_Y       = 610;
+export const DRAFT_TESTMODE_Y       = 652;
 export const DRAFT_COLOR_BG         = 0x0d0d1a;
 export const DRAFT_COLOR_SLOT_EMPTY = 0x111122;
 export const DRAFT_COLOR_CONFIRM_BG = 0x334455;
@@ -201,7 +203,7 @@ export const TOOLTIP_H              = 62;
 export const POWERUP_TOOLTIP_X      = BOARD_OFFSET_X + 4;
 export const POWERUP_DESCRIPTIONS   = {
   emp:        { name: 'EMP',         desc: 'Stuns all enemy robots for 5s.' },
-  airstrike:  { name: 'Airstrike',   desc: 'Destroys all enemies in a column.' },
+  airstrike:  { name: 'Airstrike',   desc: 'Destroys all enemies on your side of the map.' },
   overcharge: { name: 'Overcharge',  desc: 'Your robots deal double damage for 10s.' },
   supply:     { name: 'Supply Drop', desc: 'Gain 10 Metal, 5 Silicon, 5 Batteries.' },
   surge:      { name: 'Surge',       desc: 'Spawns 5 of your auto-spawn robot now.' },

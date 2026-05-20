@@ -6,9 +6,11 @@ import {
   MAX_FLOORS,
   DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_CARD_PAD, DRAFT_CARD_ROW_Y,
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
-  DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
+  DRAFT_PASSIVE_Y, DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
   DRAFT_COLOR_BG, DRAFT_COLOR_SLOT_EMPTY, DRAFT_COLOR_CONFIRM_BG, DRAFT_COLOR_LOCKED,
-  DRAFT_SAVE_KEY,
+  DRAFT_SAVE_KEY, DEPTH_DRAG_GHOST,
+  PASSIVE_LEVEL_IMPROVED, PASSIVE_LEVEL_ADVANCED, PASSIVE_LEVEL_SUPERIOR,
+  PASSIVE_LEVEL_PERFECTED, PASSIVE_LEVEL_ASI,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
 import floorsData from '../data/floors.json';
@@ -45,6 +47,7 @@ export default class DraftScene extends Phaser.Scene {
     this._slotIndex = data?.slotIndex ?? null;
     this._floor     = data?.floor     ?? 1;
     this._powerupSlots = data?.powerupSlots ?? [null, null, null];
+    this._savedLoadout = data?.loadout ?? null;
     this._startingResources = data?.startingResources
       ?? (this._testMode ? TESTMODE_RESOURCES : _rollStartingResources(this._character?.level ?? 1));
   }
@@ -64,7 +67,16 @@ export default class DraftScene extends Phaser.Scene {
     this._counts = {};
     this._available().forEach(u => { this._counts[u.name] = 0; });
 
-    if (!this._testMode && (this._character?.level ?? 0) < 9) {
+    if (this._savedLoadout) {
+      for (const name of this._savedLoadout) {
+        if (name in this._counts) this._counts[name]++;
+      }
+      while (this._total > this._unlockedSlots) {
+        const keys = Object.keys(this._counts).filter(k => this._counts[k] > 0);
+        if (!keys.length) break;
+        this._counts[keys[keys.length - 1]]--;
+      }
+    } else if (!this._testMode && (this._character?.level ?? 0) < 9) {
       let filled = 0;
       for (const u of this._available()) {
         if (filled >= this._unlockedSlots) break;
@@ -73,20 +85,23 @@ export default class DraftScene extends Phaser.Scene {
       }
     }
 
-    this._slotRects   = [];
-    this._slotLabels  = [];
-    this._countTexts  = {};
-    this._confirmBtn  = null;
-    this._cardSprites = [];
+    this._slotRects    = [];
+    this._slotLabels   = [];
+    this._slotHitZones = [];
+    this._countTexts   = {};
+    this._confirmBtn   = null;
+    this._cardSprites  = [];
 
     this._buildBackground();
     this._buildHeader();
     this._buildUnitCards();
     this._buildLoadoutSlots();
+    this._buildPassiveInfo();
     this._buildConfirmButton();
     this._buildTestModeToggle();
     this._refresh();
     this._startCardAnimCycle();
+    this._setupDrag();
   }
 
   _buildBackground() {
@@ -110,21 +125,21 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '12px', color: '#ff9999', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    if (favUnit) {
-      this.add.text(cx, 44, `Favorite robot: ${favUnit}`, {
-        fontSize: '13px', color: '#ffcccc', fontFamily: 'monospace',
-      }).setOrigin(0.5, 0);
-    }
-
     if (quote) {
-      this.add.text(cx, 62, `"${quote}"`, {
+      this.add.text(cx, 44, `"${quote}"`, {
         fontSize: '12px', color: '#aabbcc', fontFamily: 'monospace', fontStyle: 'italic',
         align: 'center', wordWrap: { width: CANVAS_W - 24 },
       }).setOrigin(0.5, 0);
     }
 
+    if (favUnit) {
+      this.add.text(cx, 65, `Favorite robot: ${favUnit}`, {
+        fontSize: '13px', color: '#ffcccc', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+    }
+
     const res    = this._startingResources;
-    const resStr = `Starting Resources:  M:${res.metal}  Si:${res.silicon}  B:${res.batteries}`;
+    const resStr = `Your starting resources:  Metal: ${res.metal}  Silicon: ${res.silicon}  Batteries: ${res.batteries}`;
     this.add.text(cx, 90, resStr, {
       fontSize: '13px', color: '#ffdd88', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
@@ -154,7 +169,7 @@ export default class DraftScene extends Phaser.Scene {
       }
 
       const cardColor = parseInt(unit.color.slice(1), 16);
-      this.add.rectangle(x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, DRAFT_CARD_W, DRAFT_CARD_H, cardColor)
+      const cardBg = this.add.rectangle(x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, DRAFT_CARD_W, DRAFT_CARD_H, cardColor)
         .setDepth(1);
 
       const atlasKey = UNIT_SPRITE_KEY[unit.name];
@@ -194,20 +209,24 @@ export default class DraftScene extends Phaser.Scene {
         fontSize: '8px', color: '#ffdd88', fontFamily: 'monospace',
       }).setDepth(3);
 
-      const btnMinus = this.add.text(x + 6, y + 44, '[-]', {
-        fontSize: '13px', color: '#cc4444', fontFamily: 'monospace',
-      }).setDepth(3).setInteractive({ useHandCursor: true });
-      btnMinus.on('pointerdown', () => this._decrement(unit.name));
-
-      const countTxt = this.add.text(x + 40, y + 44, '0', {
-        fontSize: '10px', color: '#ffffff', fontFamily: 'monospace',
-      }).setOrigin(0.5, 0).setDepth(3);
+      const countTxt = this.add.text(x + DRAFT_CARD_W - 4, y + DRAFT_CARD_H - 4, '0', {
+        fontSize: '11px', color: '#ccccee', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(1, 1).setDepth(3);
       this._countTexts[unit.name] = countTxt;
 
-      const btnPlus = this.add.text(x + 58, y + 44, '[+]', {
-        fontSize: '13px', color: '#44cc44', fontFamily: 'monospace',
-      }).setDepth(3).setInteractive({ useHandCursor: true });
-      btnPlus.on('pointerdown', () => this._increment(unit.name));
+      this.add.text(x + 6, y + DRAFT_CARD_H - 4, '⠿ drag', {
+        fontSize: '7px', color: '#667788', fontFamily: 'monospace',
+      }).setOrigin(0, 1).setDepth(3);
+
+      const hitArea = this.add.rectangle(
+        x + DRAFT_CARD_W / 2, y + DRAFT_CARD_H / 2, DRAFT_CARD_W, DRAFT_CARD_H, 0, 0
+      ).setDepth(2).setInteractive({ useHandCursor: true });
+      hitArea.on('pointerover', () => cardBg.setStrokeStyle(2, 0xffffff, 0.5));
+      hitArea.on('pointerout',  () => cardBg.setStrokeStyle(0));
+      hitArea.on('pointerdown', (ptr, lx, ly, evt) => {
+        evt.stopPropagation();
+        this._dragCandidate = { unitName: unit.name, startX: ptr.x, startY: ptr.y };
+      });
     }
   }
 
@@ -228,26 +247,26 @@ export default class DraftScene extends Phaser.Scene {
     const unlocked  = this._unlockedSlots;
     const rightEdge = SLOT_START_X + SLOT_TOTAL_W;
 
-    this.add.text(CANVAS_W / 2, DRAFT_SLOT_Y - 14, '── YOUR LOADOUT ──', {
-      fontSize: '9px', color: '#556677', fontFamily: 'monospace',
+    this.add.text(CANVAS_W / 2, DRAFT_SLOT_Y - 20, '── drag to add  ·  tap slot to remove ──', {
+      fontSize: '11px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
-    const clearBtn = this.add.text(SLOT_START_X, DRAFT_SLOT_Y - 14, '[ Clear ]', {
-      fontSize: '9px', color: '#cc6666', fontFamily: 'monospace',
+    const clearBtn = this.add.text(SLOT_START_X, DRAFT_SLOT_Y - 20, '[ Clear ]', {
+      fontSize: '11px', color: '#cc6666', fontFamily: 'monospace',
     }).setOrigin(0, 0).setDepth(2).setInteractive({ useHandCursor: true });
     clearBtn.on('pointerover', () => clearBtn.setColor('#ff8888'));
     clearBtn.on('pointerout',  () => clearBtn.setColor('#cc6666'));
     clearBtn.on('pointerdown', () => this._clearLoadout());
 
-    const loadBtn = this.add.text(rightEdge, DRAFT_SLOT_Y - 14, '[ Load ]', {
-      fontSize: '9px', color: '#6688cc', fontFamily: 'monospace',
+    const loadBtn = this.add.text(rightEdge, DRAFT_SLOT_Y - 20, '[ Load ]', {
+      fontSize: '11px', color: '#6688cc', fontFamily: 'monospace',
     }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
     loadBtn.on('pointerover', () => loadBtn.setColor('#88aaff'));
     loadBtn.on('pointerout',  () => loadBtn.setColor('#6688cc'));
     loadBtn.on('pointerdown', () => this._loadDraft());
 
-    this._saveBtn = this.add.text(rightEdge - 54, DRAFT_SLOT_Y - 14, '[ Save ]', {
-      fontSize: '9px', color: '#6688cc', fontFamily: 'monospace',
+    this._saveBtn = this.add.text(rightEdge - 64, DRAFT_SLOT_Y - 20, '[ Save ]', {
+      fontSize: '11px', color: '#6688cc', fontFamily: 'monospace',
     }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
     this._saveBtn.on('pointerover', () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#88aaff'); });
     this._saveBtn.on('pointerout',  () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#6688cc'); });
@@ -278,6 +297,7 @@ export default class DraftScene extends Phaser.Scene {
 
       this._slotRects.push(bg);
       this._slotLabels.push(lbl);
+      this._slotHitZones.push({ x, y: DRAFT_SLOT_Y, w: DRAFT_SLOT_W, h: DRAFT_SLOT_H });
     }
   }
 
@@ -288,7 +308,7 @@ export default class DraftScene extends Phaser.Scene {
     ).setDepth(1);
     this._confirmBtn = this.add.text(
       CANVAS_W / 2, DRAFT_CONFIRM_Y + DRAFT_CONFIRM_BTN_H / 2, 'CONFIRM  ▶', {
-        fontSize: '14px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+        fontSize: '17px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
       }
     ).setOrigin(0.5).setDepth(2).setInteractive({ useHandCursor: true });
     this._confirmBtn.on('pointerdown', () => this._confirm());
@@ -301,7 +321,7 @@ export default class DraftScene extends Phaser.Scene {
     const color   = this._testMode ? '#ff9900' : '#556677';
 
     const btn = this.add.text(cx, DRAFT_TESTMODE_Y, label, {
-      fontSize: '11px', color, fontFamily: 'monospace',
+      fontSize: '13px', color, fontFamily: 'monospace',
     }).setOrigin(0.5, 0).setDepth(2).setInteractive({ useHandCursor: true });
 
     btn.on('pointerdown', () => {
@@ -471,5 +491,109 @@ export default class DraftScene extends Phaser.Scene {
     const cleanup = () => all.forEach(o => o.destroy());
     closeTxt.on('pointerdown', cleanup);
     overlay.on('pointerdown', cleanup);
+  }
+
+  _passiveInfo(level) {
+    if (level >= PASSIVE_LEVEL_ASI)       return { name: 'Artificial Superintelligence', desc: 'Begin each round with a free Juggernaut' };
+    if (level >= PASSIVE_LEVEL_PERFECTED) return { name: 'Perfected Scavenging',         desc: 'Earn +2 Metal, +1 Si, +1 B on each kill' };
+    if (level >= PASSIVE_LEVEL_SUPERIOR)  return { name: 'Superior Scavenging',          desc: 'Earn +1 Si or +1 B on each kill' };
+    if (level >= PASSIVE_LEVEL_ADVANCED)  return { name: 'Advanced Scavenging',          desc: 'Earn +1 Si or +1 B on each kill' };
+    if (level >= PASSIVE_LEVEL_IMPROVED)  return { name: 'Improved Scavenging',          desc: '50% chance to earn +1 Si or +1 B on each kill' };
+    return null;
+  }
+
+  _buildPassiveInfo() {
+    if (!this._character) return;
+    const level = this._character.level;
+    const cx    = CANVAS_W / 2;
+    const info  = this._passiveInfo(level);
+
+    if (!info) {
+      this.add.text(cx, DRAFT_PASSIVE_Y + 6, `Passive skill unlocks at level ${PASSIVE_LEVEL_IMPROVED}`, {
+        fontSize: '11px', color: '#2e3a46', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+      return;
+    }
+
+    this.add.text(cx, DRAFT_PASSIVE_Y, `✦ ${info.name}`, {
+      fontSize: '12px', color: '#ffcc44', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    this.add.text(cx, DRAFT_PASSIVE_Y + 16, info.desc, {
+      fontSize: '11px', color: '#8899bb', fontFamily: 'monospace',
+    }).setOrigin(0.5, 0);
+  }
+
+  _setupDrag() {
+    this._dragState     = null;
+    this._dragCandidate = null;
+
+    this.input.on('pointermove', (pointer) => {
+      if (this._dragCandidate && !this._dragState) {
+        const dx = pointer.x - this._dragCandidate.startX;
+        const dy = pointer.y - this._dragCandidate.startY;
+        if (Math.sqrt(dx * dx + dy * dy) > 8) {
+          this._startDrag(this._dragCandidate.unitName, pointer.x, pointer.y);
+          this._dragCandidate = null;
+        }
+      }
+      if (this._dragState) {
+        this._dragState.ghost.setPosition(pointer.x, pointer.y);
+        this._updateDropHighlight();
+      }
+    });
+
+    this.input.on('pointerup', (pointer) => {
+      if (this._dragState) {
+        if (this._isInLoadoutZone(pointer.x, pointer.y)) {
+          this._increment(this._dragState.unitName);
+        }
+        this._endDrag();
+      }
+      this._dragCandidate = null;
+    });
+  }
+
+  _startDrag(unitName, x, y) {
+    const unit      = unitsData.find(u => u.name === unitName);
+    const cardColor = parseInt(unit.color.slice(1), 16);
+    const ghost     = this.add.container(x, y).setDepth(DEPTH_DRAG_GHOST);
+    ghost.add(this.add.rectangle(0, 0, 100, 26, cardColor, 0.88));
+    ghost.add(this.add.text(0, 0, unitName.toUpperCase(), {
+      fontSize: '10px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    }).setOrigin(0.5));
+    this._dragState = { unitName, ghost };
+    this._updateDropHighlight();
+  }
+
+  _endDrag() {
+    if (!this._dragState) return;
+    this._dragState.ghost.destroy();
+    this._dragState = null;
+    this._clearDropHighlight();
+  }
+
+  _isInLoadoutZone(x, y) {
+    return this._slotHitZones.some(z =>
+      x >= z.x && x <= z.x + z.w && y >= z.y && y <= z.y + z.h
+    );
+  }
+
+  _updateDropHighlight() {
+    const loadout = this._loadout();
+    const canAdd  = this._total < this._unlockedSlots;
+    for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
+      const isLocked = i >= this._unlockedSlots;
+      if (isLocked) continue;
+      const isFilled = i < loadout.length;
+      if (!isFilled && canAdd) {
+        this._slotRects[i].setStrokeStyle(2, 0x88ff88, 1);
+      } else {
+        this._slotRects[i].setStrokeStyle(0);
+      }
+    }
+  }
+
+  _clearDropHighlight() {
+    for (const rect of this._slotRects) rect.setStrokeStyle(0);
   }
 }

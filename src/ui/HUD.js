@@ -17,25 +17,25 @@ export default class HUD {
   constructor(scene) {
     // NPC HP — left side panel, centred on NPC base tile row
     this._npcHpText = scene.add.text(LEFT_PANEL_CX, tileY(NPC_BASE_ROW), '', {
-      fontSize: '11px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
+      fontSize: '14px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: SIDE_PANEL_W - 4 },
     }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
     // NPC resources — left side panel, one tile below HP
     this._npcResourceText = scene.add.text(LEFT_PANEL_CX, tileY(NPC_BASE_ROW) + TILE_SIZE, '', {
-      fontSize: '10px', color: '#ffaa66', fontFamily: 'monospace', align: 'center',
+      fontSize: '12px', color: '#ffaa66', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: SIDE_PANEL_W - 4 },
     }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
     // Player HP — right side panel, centred on player base tile row
     this._playerHpText = scene.add.text(RIGHT_PANEL_CX, tileY(PLAYER_BASE_ROW), '', {
-      fontSize: '11px', color: '#8899ff', fontFamily: 'monospace', align: 'center',
+      fontSize: '14px', color: '#8899ff', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: SIDE_PANEL_W - 4 },
     }).setOrigin(0.5, 0.5).setDepth(DEPTH_HUD);
 
     // Player resources — right side panel, a few rows above player base
     this._resourceText = scene.add.text(RIGHT_PANEL_CX, BOARD_OFFSET_Y + BOARD_H - 72, '', {
-      fontSize: '10px', color: '#ffdd88', fontFamily: 'monospace', align: 'center',
+      fontSize: '12px', color: '#ffdd88', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: SIDE_PANEL_W - 4 },
     }).setOrigin(0.5, 0).setDepth(DEPTH_HUD);
 

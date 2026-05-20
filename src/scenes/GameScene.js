@@ -225,6 +225,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Slot selection → Base spawn or drop mode ─────────────────────────────
 
   _onSlotSelected(slotIndex, unitName) {
+    if (this._roundOver) return;
     if (!unitName) {
       this._exitDropMode();
       return;
@@ -537,6 +538,7 @@ export default class GameScene extends Phaser.Scene {
   // ── NPC purchasing ────────────────────────────────────────────────────────
 
   _npcPurchaseTick() {
+    if (this._roundOver) return;
     const now = this.time.now;
     const eligible = this._floorConfig.loadout
       .map((unitName, i) => ({ unitName, i, stats: unitsData.find(u => u.name === unitName) }))
@@ -554,6 +556,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   _spawnFavoriteUnit() {
+    if (this._roundOver) return;
     const unitName = this._floorConfig.favoriteUnit;
     const stats    = unitsData.find(u => u.name === unitName);
     if (!stats) return;
@@ -675,10 +678,6 @@ export default class GameScene extends Phaser.Scene {
   // ── Round end + Play Again ────────────────────────────────────────────────
 
   _onRoundEnd(winner) {
-    this._roundOver = true;
-    this._exitDropMode();
-    this._spawnSystem.stop();
-
     if (winner === 'player') {
       this._awardXP(XP_PER_FLOOR * this._floor);
       if (this._character && this._floor > (this._character.highestFloor ?? 1)) {
@@ -686,6 +685,10 @@ export default class GameScene extends Phaser.Scene {
         this._saveCharacter();
       }
     }
+
+    this._roundOver = true;
+    this._exitDropMode();
+    this._spawnSystem.stop();
 
     const isWin      = winner === 'player';
     const isRunEnd   = isWin && this._floor >= MAX_FLOORS;
@@ -703,8 +706,8 @@ export default class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_TEXT);
 
     // XP summary
-    if (this._character) {
-      this.add.text(cx, cy - 34, `+${this._xpThisRound} XP`, {
+    if (this._character && isWin) {
+      this.add.text(cx, cy - 34, `+${XP_PER_FLOOR * this._floor} XP  (floor clear)`, {
         fontSize: '13px', color: '#88aaff', fontFamily: 'monospace',
       }).setOrigin(0.5).setDepth(DEPTH_ROUND_END_TEXT);
 
@@ -739,6 +742,7 @@ export default class GameScene extends Phaser.Scene {
           testMode:     this._testMode,
           floor:        this._floor + 1,
           powerupSlots: this._powerupSystem.slots,
+          loadout:      this._loadout,
         });
       } else {
         this.scene.start('CharacterSelectScene');
@@ -836,7 +840,7 @@ export default class GameScene extends Phaser.Scene {
     gfx.lineBetween(BOARD_OFFSET_X, NPC_LOADOUT_BAR_H - 1, BOARD_OFFSET_X + BOARD_W, NPC_LOADOUT_BAR_H - 1);
 
     this.add.text(30, NPC_LOADOUT_BAR_H / 2, this._floorConfig.ai.toUpperCase(), {
-      fontSize: '8px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
+      fontSize: '11px', color: '#ff9999', fontFamily: 'monospace', align: 'center',
       wordWrap: { width: 56 },
     }).setOrigin(0.5, 0.5).setDepth(DEPTH_NPC_LOADOUT_TEXT);
 
