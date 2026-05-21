@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rogue Robots — How to Play</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0d0d1a;
+      color: #d4d8e8;
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    a { color: #66aaff; }
+
+    /* ── Layout ── */
+    .content {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 40px 24px 64px;
+    }
+
+    .page-title {
+      font-size: 26px;
+      color: #aaccff;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .page-subtitle {
+      font-size: 12px;
+      color: #445566;
+      margin-bottom: 36px;
+      letter-spacing: 1px;
+    }
+
+    /* ── Partner letter intro ── */
+    .letter {
+      background: #111128;
+      border-left: 4px solid #4466cc;
+      border-radius: 4px;
+      padding: 20px 24px;
+      margin-bottom: 40px;
+      color: #c8d0e8;
+      font-size: 14px;
+    }
+    .letter p + p { margin-top: 12px; }
+
+    /* ── Sections ── */
+    h2 {
+      font-size: 18px;
+      color: #88aaff;
+      border-bottom: 1px solid #223355;
+      padding-bottom: 6px;
+      margin: 40px 0 16px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    h3 {
+      font-size: 14px;
+      color: #aaccff;
+      margin: 24px 0 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    p { margin-bottom: 14px; }
+
+    /* ── Callout boxes ── */
+    .callout {
+      background: #121230;
+      border: 1px solid #334466;
+      border-radius: 4px;
+      padding: 14px 18px;
+      margin: 16px 0;
+    }
+    .callout.warn  { border-color: #664422; background: #180e08; }
+    .callout.tip   { border-color: #226644; background: #081810; }
+    .callout.note  { border-color: #4455aa; background: #0d1030; font-style: italic; color: #aabbcc; font-size: 14px; }
+    .callout .label {
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .callout.warn .label { color: #cc7744; }
+    .callout.tip  .label { color: #44cc88; }
+    .callout.note .label { color: #6677bb; }
+
+    /* ── Map diagram ── */
+    .map-diagram {
+      font-family: monospace;
+      font-size: 13px;
+      background: #080818;
+      border: 1px solid #223355;
+      border-radius: 4px;
+      padding: 20px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+      color: #99aacc;
+    }
+    .map-diagram .npc    { color: #ff6644; }
+    .map-diagram .player { color: #44cc88; }
+    .map-diagram .divide { color: #ffee00; }
+
+    /* ── Unit grid ── */
+    .unit-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .unit-card {
+      background: #0f0f28;
+      border: 1px solid #223355;
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .unit-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .unit-card .unit-name  { font-size: 13px; color: #ddeeff; font-weight: bold; margin-bottom: 3px; }
+    .unit-card .unit-desc  { font-size: 11px; color: #7788aa; line-height: 1.5; }
+    .unit-card .unit-stats { font-size: 11px; color: #556677; margin-top: 4px; }
+
+    /* ── Resource row ── */
+    .resource-row {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .resource-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #0f0f28;
+      border: 1px solid #223355;
+      border-radius: 4px;
+      padding: 10px 16px;
+      flex: 1;
+      min-width: 160px;
+    }
+    .resource-item img { width: 36px; height: 36px; object-fit: contain; }
+    .resource-item .res-name { color: #aaccff; font-size: 13px; }
+    .resource-item .res-desc { font-size: 11px; color: #556677; margin-top: 2px; }
+
+    /* ── Powerup row ── */
+    .powerup-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 16px 0;
+    }
+    .powerup-card {
+      background: #0f0f28;
+      border: 1px solid #334466;
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .powerup-card img { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+    .powerup-icon-text {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: bold; color: #ffffff; flex-shrink: 0;
+    }
+    .powerup-card .pu-name { font-size: 13px; color: #ccbbff; }
+    .powerup-card .pu-desc { font-size: 11px; color: #7788aa; margin-top: 3px; }
+
+    /* ── Steps list ── */
+    .steps { counter-reset: step; list-style: none; padding: 0; margin: 12px 0; }
+    .steps li {
+      counter-increment: step;
+      padding: 10px 12px 10px 48px;
+      position: relative;
+      background: #0f0f28;
+      border: 1px solid #1c2844;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .steps li::before {
+      content: counter(step);
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 22px; height: 22px;
+      background: #334488; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: #aaccff;
+      text-align: center; line-height: 22px;
+    }
+
+    /* ── Tag pills ── */
+    .tag {
+      display: inline-block;
+      padding: 1px 7px; border-radius: 10px;
+      font-size: 11px; margin-right: 4px; vertical-align: middle;
+    }
+    .tag.base { background: #1a3366; color: #88aaff; }
+    .tag.drop { background: #332244; color: #cc88ff; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #334455;
+      font-size: 12px;
+      border-top: 1px solid #1a2233;
+    }
+  </style>
+</head>
+<body>
+
+<div class="content">
+
+  <p class="page-title">Rogue Robots</p>
+  <p class="page-subtitle">FIELD GUIDE — WRITTEN FOR YOU BEFORE WE GO IN</p>
+
+  <!-- ── Partner letter ── -->
+  <div class="letter">
+    <p>Hey. I'm the one who got you into this building, remember? So you're going to trust me on this.</p>
+    <p>The facility's AI has spread itself across a series of servers deep inside the complex.
+    Each one is protected by waves of combat robots that it controls. Your job — our job —
+    is to fight through them, floor by floor, and destroy each server before it destroys ours.</p>
+    <p>I've mapped out how the system works. Read this before we go in. It's not complicated
+    once you understand the loop.</p>
+    <p>— your partner</p>
+  </div>
+
+  <!-- ── The Big Picture ── -->
+  <h2>What's Going On</h2>
+  <p>Each floor is a tug-of-war on a grid. The map is split in two — the AI controls the top half,
+  you control the bottom. Both sides have a server in the corner. Both sides spawn robots that
+  fight each other on the way to the enemy server.</p>
+  <p>Your goal: destroy the AI's server before it destroys yours. Your robots fight automatically
+  once deployed — your job is deciding <em>which</em> robots to bring and
+  <em>when</em> to put them on the field.</p>
+
+  <div class="callout note">
+    <div class="label">In other words</div>
+    Think of it like chess, but the pieces run off on their own the moment you put them down.
+    Which is either terrifying or liberating, depending on your mood.
+  </div>
+
+  <!-- ── The Map ── -->
+  <h2>The Map</h2>
+  <p>The grid is 12 columns × 16 rows. The yellow line across the middle is the territorial divide.</p>
+
+  <div class="map-diagram"><span class="npc">┌─────────────────────────────────────────────┐
+│  ★ AI SERVER (top-left)    AI TERRITORY       │
+│                                               │
+│     Rows 1–8: Enemy robots spawn and roam     │
+│     here, pathing toward your server.         │
+│                                               │</span>
+<span class="divide">│━━━━━━━━━━━ TERRITORIAL DIVIDE ━━━━━━━━━━━━━━│</span>
+<span class="player">│                                               │
+│     Rows 9–16: Your territory.                │
+│     Your robots spawn here.                   │
+│                                               │
+│  Your robots spawn from YOUR SERVER           │
+│  (bottom-right corner)    ★ YOUR SERVER       │
+└─────────────────────────────────────────────┘</span></div>
+
+  <p style="margin-top:14px;">Drop-type units — towers, traps, walls — are placed anywhere on
+  <strong>your side</strong> of the divide. Base-type units spawn automatically from your
+  server corner and march toward the AI.</p>
+
+  <div class="callout warn">
+    <div class="label">Important</div>
+    You cannot place Drop units on the AI's side of the map. The divide is the hard limit.
+    Drop units go in rows 9–16 only.
+  </div>
+
+  <!-- ── Resources ── -->
+  <h2>Resources</h2>
+  <p>You have three currencies. Every unit costs some combination of them to deploy.</p>
+
+  <div class="resource-row">
+    <div class="resource-item" style="border-color:#664422; background:#130d07;">
+      <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:22px;">🔩</div>
+      <div>
+        <div class="res-name" style="color:#cc9955;">⬡ Metal</div>
+        <div class="res-desc">Used by almost everything. Dropped by destroyed enemy robots.</div>
+      </div>
+    </div>
+    <div class="resource-item">
+      <img src="assets/images/silicon2.png" alt="Silicon">
+      <div>
+        <div class="res-name">◈ Silicon</div>
+        <div class="res-desc">For smart, technical, or ranged units. Found as map tokens.</div>
+      </div>
+    </div>
+    <div class="resource-item">
+      <img src="assets/images/battery3.png" alt="Battery">
+      <div>
+        <div class="res-name">⚡ Batteries</div>
+        <div class="res-desc">Powers energy weapons and advanced units. Found as map tokens.</div>
+      </div>
+    </div>
+  </div>
+
+  <p><strong>Metal is the critical resource.</strong> Aside from the Datamine tower, the only way
+  to earn Metal mid-round is by destroying enemy robots. Silicon and Batteries appear as glowing
+  tokens on the map — your units collect them by walking over them. The
+  <strong>Scavenger</strong> bot is specifically built to rush out and grab tokens.
+  The <strong>Datamine</strong> tower generates all three resources passively over time.</p>
+  <p>You also start each floor with a bonus resource pool that scales with your level, so later
+  floors give you more to work with from the start.</p>
+
+  <!-- ── The Prep Screen ── -->
+  <h2>The Prep Screen</h2>
+  <p>Before each floor, you choose your loadout — up to 8 units. This is the most important
+  decision you make each round.</p>
+
+  <ol class="steps">
+    <li>You see a grid of all units you've unlocked so far. More units unlock as you level up.</li>
+    <li>Drag a unit card into one of the loadout slots at the bottom to add it. Click a filled slot to remove it.</li>
+    <li>The order of your slots matters — your most-used units should be easiest to reach.</li>
+    <li>Once you're happy, hit <strong>CONFIRM ▶</strong> to start the round.</li>
+  </ol>
+
+  <div class="callout">
+    <div class="label">Note</div>
+    The screen shows the AI's designation, their favorite robot, and a quote.
+    The favorite robot is the one they'll deploy most aggressively — build your loadout around countering it.
+  </div>
+
+  <div class="callout tip">
+    <div class="label">My tip</div>
+    I always check the enemy's favorite unit first. If it's a Cannonbot, I bring fast cheap
+    units to swarm it before it can fire. If it's a Medibot, I bring burst damage to punch through
+    the healing. Don't just bring the same loadout every floor.
+  </div>
+
+  <!-- ── Deploying Units ── -->
+  <h2>Deploying Units</h2>
+
+  <h3>Base Units <span class="tag base">BASE</span></h3>
+  <p>These deploy from your server corner and pathfind automatically toward the AI's server.
+  Click their slot in the loadout bar at the bottom to deploy one.
+  There's a 1-second cooldown between any deployments.</p>
+
+  <h3>Drop Units <span class="tag drop">DROP</span></h3>
+  <p>These are placed by you on your half of the map. Click the slot, then click a tile on
+  the board to place it. This includes towers, traps, walls, and support units.</p>
+
+  <div class="callout warn">
+    <div class="label">Watch out</div>
+    Placing a Drop unit on a walkable path tile will block movement for all units.
+    Sometimes this is intentional (Wallbot as a damage sponge), but usually it isn't.
+    Think before you place.
+  </div>
+
+  <!-- ── Units ── -->
+  <h2>Your Units</h2>
+  <p>Units unlock as you level up. Here's what each one does:</p>
+
+  <h3><span class="tag base">BASE</span> Spawning Units — march from your server automatically</h3>
+  <div class="unit-grid">
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#2255cc;"></div>
+      <div>
+        <div class="unit-name">Punchbot</div>
+        <div class="unit-desc">Your bread and butter melee fighter. Cheap, reliable.</div>
+        <div class="unit-stats">Unlocks: Lv 1 &nbsp;|&nbsp; Cost: 3 Metal</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#00aacc;"></div>
+      <div>
+        <div class="unit-name">Zapbot</div>
+        <div class="unit-desc">Ranged attacker. Stops and fires at enemies within 3 tiles.</div>
+        <div class="unit-stats">Unlocks: Lv 2 &nbsp;|&nbsp; Cost: 3M + 1B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#cc2222;"></div>
+      <div>
+        <div class="unit-name">Boombot</div>
+        <div class="unit-desc">Charges in fast, then explodes with AoE damage. One-time use.</div>
+        <div class="unit-stats">Unlocks: Lv 4 &nbsp;|&nbsp; Cost: 3M + 1Si + 1B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#cc7722;"></div>
+      <div>
+        <div class="unit-name">Floatbot</div>
+        <div class="unit-desc">Flies in a straight line — ignores walls and paths entirely. Can only be attacked by units with range &gt; 1.</div>
+        <div class="unit-stats">Unlocks: Lv 6 &nbsp;|&nbsp; Cost: 2M + 2Si + 2B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#112266;"></div>
+      <div>
+        <div class="unit-name">Tankbot</div>
+        <div class="unit-desc">Slow, armored brawler. Takes a hit. Good for absorbing fire.</div>
+        <div class="unit-stats">Unlocks: Lv 7 &nbsp;|&nbsp; Cost: 7M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#cc2222;"></div>
+      <div>
+        <div class="unit-name">Cannonbot</div>
+        <div class="unit-desc">High-damage long-range cannon. Slow attack and movement.</div>
+        <div class="unit-stats">Unlocks: Lv 8 &nbsp;|&nbsp; Cost: 10M + 5Si + 5B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#777777;"></div>
+      <div>
+        <div class="unit-name">Spambot</div>
+        <div class="unit-desc">Very cheap, very fast. Floods the field with numbers.</div>
+        <div class="unit-stats">Unlocks: Lv 16 &nbsp;|&nbsp; Cost: 1M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#1a3388;"></div>
+      <div>
+        <div class="unit-name">Carrierbot</div>
+        <div class="unit-desc">Very slow tank that spawns a Punchbot every 10 seconds as it marches.</div>
+        <div class="unit-stats">Unlocks: Lv 21 &nbsp;|&nbsp; Cost: 15M + 5Si + 3B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#ff8800;"></div>
+      <div>
+        <div class="unit-name">Medibot</div>
+        <div class="unit-desc">Doesn't attack. Heals a nearby friendly robot every 3 seconds.</div>
+        <div class="unit-stats">Unlocks: Lv 22 &nbsp;|&nbsp; Cost: 5M + 10Si + 10B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#991122;"></div>
+      <div>
+        <div class="unit-name">Juggernaut</div>
+        <div class="unit-desc">Massive HP, heavy armor, hits hard. Very slow.</div>
+        <div class="unit-stats">Unlocks: Lv 24 &nbsp;|&nbsp; Cost: 20M + 5Si + 10B</div>
+      </div>
+    </div>
+  </div>
+
+  <h3><span class="tag drop">DROP</span> Placed Units — you position these on the board</h3>
+  <div class="unit-grid">
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#ccaa00;"></div>
+      <div>
+        <div class="unit-name">Scavenger</div>
+        <div class="unit-desc">Rushes to the nearest resource token and collects it, then returns to idle. Great for economy.</div>
+        <div class="unit-stats">Unlocks: Lv 3 &nbsp;|&nbsp; Cost: 1M + 1Si</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#aaaaaa;"></div>
+      <div>
+        <div class="unit-name">Datamine</div>
+        <div class="unit-desc">Stationary. Generates 1 of each resource every 5 seconds. Long cooldown but great value over time.</div>
+        <div class="unit-stats">Unlocks: Lv 5 &nbsp;|&nbsp; Cost: 3M + 3Si + 3B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#882299;"></div>
+      <div>
+        <div class="unit-name">Zap Tower</div>
+        <div class="unit-desc">Stationary ranged tower. Solid all-round defense.</div>
+        <div class="unit-stats">Unlocks: Lv 11 &nbsp;|&nbsp; Cost: 5M + 2Si + 5B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#226633;"></div>
+      <div>
+        <div class="unit-name">Snipebot</div>
+        <div class="unit-desc">Very long range (7 tiles), high damage, but attacks very slowly.</div>
+        <div class="unit-stats">Unlocks: Lv 12 &nbsp;|&nbsp; Cost: 5M + 3B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#336644;"></div>
+      <div>
+        <div class="unit-name">Commando</div>
+        <div class="unit-desc">Balanced Drop-type fighter. Good for holding a position.</div>
+        <div class="unit-stats">Unlocks: Lv 13 &nbsp;|&nbsp; Cost: 5M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#999999;"></div>
+      <div>
+        <div class="unit-name">Spawnbot</div>
+        <div class="unit-desc">Sits stationary for 5 seconds, then releases 3 Bugs and self-destructs. Deploy near the front line.</div>
+        <div class="unit-stats">Unlocks: Lv 14 &nbsp;|&nbsp; Cost: 3M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#226633;"></div>
+      <div>
+        <div class="unit-name">Snipe Tower</div>
+        <div class="unit-desc">Stationary Snipebot. Very long range, attacks very slowly.</div>
+        <div class="unit-stats">Unlocks: Lv 17 &nbsp;|&nbsp; Cost: 10M + 4Si + 5B</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#771111;"></div>
+      <div>
+        <div class="unit-name">Boomtrap</div>
+        <div class="unit-desc">Stationary trap. When an enemy walks within range it explodes in AoE, then self-destructs.</div>
+        <div class="unit-stats">Unlocks: Lv 18 &nbsp;|&nbsp; Cost: 5M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#666666;"></div>
+      <div>
+        <div class="unit-name">Wallbot</div>
+        <div class="unit-desc">Very high HP, doesn't attack. A pure damage sponge — drop it in a path to absorb punishment while your other units attack freely.</div>
+        <div class="unit-stats">Unlocks: Lv 9 &nbsp;|&nbsp; Cost: 5M</div>
+      </div>
+    </div>
+    <div class="unit-card">
+      <div class="unit-swatch" style="background:#ccaa00;"></div>
+      <div>
+        <div class="unit-name">Spawn Tower</div>
+        <div class="unit-desc">A Zap Tower that also spawns a Bug every 8 seconds. Defense and offense in one.</div>
+        <div class="unit-stats">Unlocks: Lv 19 &nbsp;|&nbsp; Cost: 12M + 7Si + 7B</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bugs ── -->
+  <h3>Bugs — your free auto-spawner</h3>
+  <p>Bugs are the baseline unit: 3 HP, 1 damage, medium speed. They spawn automatically from
+  your server every 4 seconds at no cost. You don't draft them — they just show up.
+  The AI spawns them constantly too, and at an escalating rate as the round goes on.</p>
+
+  <div class="callout warn">
+    <div class="label">Time pressure</div>
+    At 5 minutes the AI's Bug spawn rate doubles. At 10 minutes it quadruples.
+    Don't let rounds drag — the longer it goes, the harder their push becomes.
+  </div>
+
+  <!-- ── Powerups ── -->
+  <h2>Powerups</h2>
+  <p>During a round, powerup tokens occasionally drop on the map. Walk a unit over one to
+  collect it into one of your 3 powerup slots (left panel). Click a slot to activate it.</p>
+
+  <div class="powerup-grid">
+    <div class="powerup-card">
+      <img src="assets/images/emp blast icon.png" alt="EMP">
+      <div>
+        <div class="pu-name">EMP</div>
+        <div class="pu-desc">Stuns all enemy robots for 5 seconds.</div>
+      </div>
+    </div>
+    <div class="powerup-card">
+      <img src="assets/images/airstrike icon.png" alt="Airstrike">
+      <div>
+        <div class="pu-name">Airstrike</div>
+        <div class="pu-desc">Destroys every enemy unit currently on your side of the map.</div>
+      </div>
+    </div>
+    <div class="powerup-card">
+      <img src="assets/images/overcharge icon.png" alt="Overcharge">
+      <div>
+        <div class="pu-name">Overcharge</div>
+        <div class="pu-desc">Your robots deal double damage for 10 seconds.</div>
+      </div>
+    </div>
+    <div class="powerup-card">
+      <img src="assets/images/supply drop icon.png" alt="Supply Drop">
+      <div>
+        <div class="pu-name">Supply Drop</div>
+        <div class="pu-desc">Instantly gain 10 Metal, 5 Silicon, 5 Batteries.</div>
+      </div>
+    </div>
+    <div class="powerup-card">
+      <div class="powerup-icon-text">+</div>
+      <div>
+        <div class="pu-name">Surge</div>
+        <div class="pu-desc">Immediately spawns 5 of your auto-spawn robot.</div>
+      </div>
+    </div>
+    <div class="powerup-card">
+      <img src="assets/images/fortify icon.png" alt="Fortify">
+      <div>
+        <div class="pu-name">Fortify</div>
+        <div class="pu-desc">Your server takes zero damage for 20 seconds.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <div class="label">My tip</div>
+    I save EMP and Airstrike for emergencies — specifically when a wave of enemy units is
+    about to reach the server. Supply Drop is best used early so you can afford to deploy
+    more units right away. Fortify is most valuable when the server is already taking damage
+    and you need time to push back.
+  </div>
+
+  <!-- ── Progression ── -->
+  <h2>Progression</h2>
+  <p>You earn XP by destroying enemy robots and for each floor you complete. Level up to
+  unlock more unit types and more loadout slots (up to 8 total). There are 15 floors in a
+  full run, and a level cap of 25.</p>
+
+  <p>Each floor has a named AI opponent with their own favorite robot and a quote. Harder
+  floors give you more starting resources to compensate.</p>
+
+  <div class="callout">
+    <div class="label">Passive Skills</div>
+    At certain levels (10, 15, 20, 23, 25) you unlock a passive skill. The Scavenging line
+    gives enemy units a chance to drop bonus resources when you destroy them — more kills means
+    more income. Each tier is stronger than the last: early tiers give a single random resource per kill,
+    and by level 20 you're pulling two random resources per kill. The level 25 skill is something special — I'm not going to spoil it.
+  </div>
+
+  <!-- ── Tips ── -->
+  <h2>A Few More Tips</h2>
+
+  <div class="callout note" style="margin-bottom:12px;">
+    <div class="label">From me</div>
+    Don't just spam Punchbots. Mix in some ranged units or you'll never punch through an armored line.
+  </div>
+  <div class="callout note" style="margin-bottom:12px;">
+    <div class="label">From me</div>
+    A Datamine placed early pays for itself in under a minute. Just make sure it's not sitting on the front line — it can't defend itself at all.
+  </div>
+  <div class="callout note" style="margin-bottom:12px;">
+    <div class="label">From me</div>
+    Floatbot bypasses everything on the ground. Send one straight over a clogged enemy front line.
+    Just remember it can only be hit by units with range greater than 1, so the AI will adapt.
+  </div>
+  <div class="callout note">
+    <div class="label">Most important</div>
+    You'll lose floors. That's fine. XP and levels carry over between runs. Keep going.
+  </div>
+
+</div>
+
+<footer>
+  Rogue Robots &nbsp;·&nbsp; Good luck in there
+</footer>
+
+</body>
+</html>

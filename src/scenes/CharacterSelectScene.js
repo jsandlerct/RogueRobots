@@ -44,6 +44,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     this._buildPlayButton();
     this._buildWarning();
     this._buildFeedbackButton();
+    this._buildHowToPlayButton();
   }
 
   // ── Layout helpers ────────────────────────────────────────────────────────
@@ -103,6 +104,13 @@ export default class CharacterSelectScene extends Phaser.Scene {
       }).setOrigin(0.5);
       this._slots[i].push(levelText);
 
+      if (save.wins > 0) {
+        const winText = this.add.text(cx, cy + 28, `✦ ${save.wins}× True Victor`, {
+          fontSize: '11px', color: '#ffdd44', fontFamily: 'monospace',
+        }).setOrigin(0.5);
+        this._slots[i].push(winText);
+      }
+
       const delBg = this.add.rectangle(cx, cy + 46, 110, 26, CHARSEL_COLOR_DELETE);
       const delTxt = this.add.text(cx, cy + 46, 'DELETE', {
         fontSize: '11px', color: '#ffaa88', fontFamily: 'monospace', fontStyle: 'bold',
@@ -155,14 +163,27 @@ export default class CharacterSelectScene extends Phaser.Scene {
   }
 
   _buildFeedbackButton() {
-    const btn = this.add.text(8, 8, '[ Feedback / Bugs ]', {
+    const btnW = 130; const btnH = 22; const x = 8; const y = 8;
+    const bg = this.add.rectangle(x + btnW / 2, y + btnH / 2, btnW, btnH, 0x0d1117)
+      .setStrokeStyle(1, 0x2a3a4a).setDepth(5);
+    const btn = this.add.text(x + btnW / 2, y + btnH / 2, 'Feedback / Bugs', {
       fontSize: '10px', color: '#778899', fontFamily: 'monospace',
-      backgroundColor: '#1a1a2e', padding: { x: 6, y: 4 },
-    }).setOrigin(0, 0).setInteractive({ useHandCursor: true });
-
-    btn.on('pointerover', () => btn.setColor('#aabbcc'));
-    btn.on('pointerout',  () => btn.setColor('#778899'));
+    }).setOrigin(0.5).setDepth(5).setInteractive({ useHandCursor: true });
+    btn.on('pointerover', () => { bg.setStrokeStyle(1, 0x445566); btn.setColor('#aabbcc'); });
+    btn.on('pointerout',  () => { bg.setStrokeStyle(1, 0x2a3a4a); btn.setColor('#778899'); });
     btn.on('pointerdown', () => window.open('https://forms.gle/nEFacroJxVao8bXD9', '_blank'));
+  }
+
+  _buildHowToPlayButton() {
+    const btnW = 116; const btnH = 22; const x = CANVAS_W - 8 - btnW; const y = 8;
+    const bg = this.add.rectangle(x + btnW / 2, y + btnH / 2, btnW, btnH, 0x0a1422)
+      .setStrokeStyle(1, 0x335577).setDepth(5);
+    const btn = this.add.text(x + btnW / 2, y + btnH / 2, '? HOW TO PLAY', {
+      fontSize: '11px', color: '#6688aa', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(5).setInteractive({ useHandCursor: true });
+    btn.on('pointerover', () => { bg.setStrokeStyle(1, 0x5577aa); btn.setColor('#aaccff'); });
+    btn.on('pointerout',  () => { bg.setStrokeStyle(1, 0x335577); btn.setColor('#6688aa'); });
+    btn.on('pointerdown', () => window.open('how_to_play.html', '_blank'));
   }
 
   _buildWarning() {
@@ -182,7 +203,7 @@ export default class CharacterSelectScene extends Phaser.Scene {
     const raw = window.prompt('Enter a name for your new character:');
     if (!raw || !raw.trim()) return;
     const name = raw.trim().slice(0, CHARSEL_MAX_NAME_LEN);
-    this._saves[slotIndex] = { name, level: 1, xp: 0, highestFloor: 1 };
+    this._saves[slotIndex] = { name, level: 1, xp: 0, highestFloor: 1, wins: 0 };
     persistSaves(this._saves);
     this._selected = slotIndex;
     this._refreshAllSlots();

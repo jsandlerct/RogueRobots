@@ -3,6 +3,7 @@ import {
   NPC_UNIT_TINT, TEAM_BORDER_COLOR, TEAM_BORDER_PX,
   DEPTH_UNIT_SPRITE, DEPTH_UNIT_OUTLINE,
 } from '../data/constants.js';
+import Settings from '../data/Settings.js';
 import unitsData from '../data/units.json';
 import { UNIT_SPRITE_KEY, UNIT_SPRITE_TINT } from '../data/spriteData.js';
 
@@ -154,6 +155,17 @@ export default class Unit {
   destroy() {
     this.alive = false;
     if (this._tween) this._tween.stop();
+
+    if (Settings.sfxOn) {
+      const n = this.stats.name;
+      if (n === 'Bug') {
+        this.scene.sound.play('sfx_clap',       { volume: 0.6 });
+      } else if (n === 'Wallbot' || n === 'Datamine' || n === 'Server') {
+        this.scene.sound.play('sfx_metal_crash', { volume: 0.6 });
+      } else if (n !== 'Spambot') {
+        this.scene.sound.play('sfx_wilhelm',     { volume: 0.4 });
+      }
+    }
 
     if (this._useSprite && this._atlasKey && this.sprite) {
       this.sprite.play(`${this._atlasKey}_die`);

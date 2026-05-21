@@ -10,7 +10,7 @@ import {
 const QUOTE =
   '“A robot may not injure a human being or, through inaction,\n' +
   'allow a human being to come to harm.”\n\n' +
-  '— Isaac Asimov, 1942';
+  '— Isaac Asimov, 1940';
 
 const STORY_BODY = [
   "OpenMordor didn’t read the fine print.",

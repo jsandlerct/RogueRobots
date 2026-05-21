@@ -8,6 +8,7 @@ import {
   PROJECTILE_MS_PER_TILE, PROJECTILE_MIN_DURATION_MS,
   DEPTH_PROJECTILE,
 } from '../data/constants.js';
+import Settings from '../data/Settings.js';
 
 export default class CombatSystem {
   constructor(scene, economySystem, onBaseHpChanged, onRoundEnd, onPlayerKill) {
@@ -128,6 +129,7 @@ export default class CombatSystem {
 
     if (attacker.stats.specialBehavior === 'boombot_aoe') {
       // AoE: damage all enemies within radius, then self-destruct.
+      if (Settings.sfxOn) this._scene.sound.play('sfx_explosion', { volume: 0.6 });
       const aoeEnemies = this._units.filter(u => u.alive && u.team !== attacker.team);
       for (const enemy of aoeEnemies) {
         if (this._tileDist(attacker, enemy) <= BOOMBOT_AOE_RADIUS) {
@@ -146,6 +148,9 @@ export default class CombatSystem {
     // Capture target position before damage (takeDamage may destroy the sprite).
     if (attacker.stats.range > 1) {
       this._fireProjectile(attacker, target);
+      this._playShootSfx(attacker);
+    } else if (attacker.stats.name === 'Punchbot' && Settings.sfxOn) {
+      this._scene.sound.play('sfx_metal_clang', { volume: 0.1 });
     }
 
     const dmg    = Math.max(MIN_DAMAGE, (attacker.stats.dmg - target.stats.armor) * dmgMult);
@@ -207,6 +212,7 @@ export default class CombatSystem {
     for (const enemy of enemies) {
       if (!enemy.alive) continue;
       if (this._tileDist(trap, enemy) <= trap.stats.range + RANGE_TOLERANCE) {
+        if (Settings.sfxOn) this._scene.sound.play('sfx_explosion', { volume: 0.6 });
         for (const e of enemies) {
           if (!e.alive) continue;
           if (this._tileDist(trap, e) <= trap.stats.range + RANGE_TOLERANCE) {
@@ -243,6 +249,7 @@ export default class CombatSystem {
       const toX = BOARD_OFFSET_X + baseCol * TILE_SIZE + TILE_SIZE / 2;
       const toY = BOARD_OFFSET_Y + baseRow * TILE_SIZE + TILE_SIZE / 2;
       this._fireProjectileToPoint(unit, toX, toY);
+      this._playShootSfx(unit);
     }
 
     const dmg        = Math.max(MIN_DAMAGE, unit.stats.dmg - BASE_ARMOR);
@@ -254,6 +261,30 @@ export default class CombatSystem {
       this._over = true;
       this._onRoundEnd(targetBase === 'player' ? 'npc' : 'player');
     }
+
+    // Boombot self-destructs after its one explosion — also damages nearby enemies.
+    if (unit.stats.specialBehavior === 'boombot_aoe') {
+      if (Settings.sfxOn) this._scene.sound.play('sfx_explosion', { volume: 0.6 });
+      const enemies = this._units.filter(u => u.alive && u.team !== unit.team);
+      for (const enemy of enemies) {
+        if (this._tileDist(unit, enemy) <= BOOMBOT_AOE_RADIUS) {
+          const aoDmg  = Math.max(MIN_DAMAGE, unit.stats.dmg - enemy.stats.armor);
+          const killed = enemy.takeDamage(aoDmg);
+          if (killed) {
+            this._economy.awardKill(unit.team);
+            if (unit.team === 'player') this._onPlayerKill?.(enemy.col, enemy.row);
+          }
+        }
+      }
+      unit.destroy();
+    }
+  }
+
+  _playShootSfx(unit) {
+    if (!Settings.sfxOn) return;
+    const heavy = ['Cannonbot', 'Juggernaut', 'Carrierbot'];
+    const key   = heavy.includes(unit.stats.name) ? 'sfx_laser_gun' : 'sfx_blaster_pew';
+    this._scene.sound.play(key, { volume: 0.45 });
   }
 
   destroy() {

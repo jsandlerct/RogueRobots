@@ -74,9 +74,9 @@
   {
     "floor": 10,
     "ai": "Ares",
-    "favoriteUnit": "Snipe Tower",
+    "favoriteUnit": "Medibot",
     "resources": { "metal": 8, "silicon": 8, "batteries": 8 },
-    "loadout": ["Snipe Tower", "Tankbot", "Floatbot", "Zapbot", "Cannonbot", "Zap Tower", "Punchbot"],
+    "loadout": ["Medibot", "Tankbot", "Floatbot", "Zapbot", "Cannonbot", "Zap Tower", "Punchbot"],
     "quote": "I'm going to weave a complex tapestry of pain"
   },
   {
@@ -98,9 +98,9 @@
   {
     "floor": 13,
     "ai": "Agent Smyth",
-    "favoriteUnit": "Medibot",
+    "favoriteUnit": "Snipe Tower",
     "resources": { "metal": 12, "silicon": 12, "batteries": 12 },
-    "loadout": ["Medibot", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Floatbot", "Punchbot"],
+    "loadout": ["Snipe Tower", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Floatbot", "Punchbot"],
     "quote": "You're a disease and I'm the cure."
   },
   {
@@ -118,5 +118,13 @@
     "resources": { "metal": 20, "silicon": 20, "batteries": 20 },
     "loadout": ["Carrierbot", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Juggernaut", "Zap Tower"],
     "quote": "One server to rule them all."
+  },
+  {
+    "floor": 16,
+    "ai": "The Board",
+    "favoriteUnit": "Juggernaut",
+    "resources": { "metal": 25, "silicon": 25, "batteries": 25 },
+    "loadout": ["Juggernaut", "Tankbot", "Medibot", "Zapbot", "Cannonbot", "Snipe Tower", "Carrierbot", "Zap Tower"],
+    "quote": "You've defeated our AI. But you will never defeat us."
   }
 ]

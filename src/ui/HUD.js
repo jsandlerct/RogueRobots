@@ -3,6 +3,7 @@ import {
   SIDE_PANEL_W, NPC_BASE_ROW, PLAYER_BASE_ROW,
   HUD_PAD, DEPTH_HUD,
 } from '../data/constants.js';
+import Settings from '../data/Settings.js';
 
 const TIMER_STYLE = { fontSize: '13px', color: '#ccccff', fontFamily: 'monospace' };
 
@@ -45,6 +46,33 @@ export default class HUD {
       BOARD_OFFSET_Y + HUD_PAD,
       '0:00', TIMER_STYLE,
     ).setOrigin(0.5, 0).setDepth(DEPTH_HUD);
+
+    // Audio toggles — top of right panel
+    const onColor  = '#55cc88';
+    const offColor = '#445566';
+    const toggleStyle = { fontSize: '10px', fontFamily: 'monospace', align: 'center',
+                          wordWrap: { width: SIDE_PANEL_W - 4 } };
+
+    const sfxLabel   = () => Settings.sfxOn   ? 'SFX\nON'   : 'SFX\nOFF';
+    const musicLabel = () => Settings.musicOn ? 'MUS\nON' : 'MUS\nOFF';
+
+    const sfxBtn = scene.add.text(RIGHT_PANEL_CX, 8, sfxLabel(), {
+      ...toggleStyle, color: Settings.sfxOn ? onColor : offColor,
+    }).setOrigin(0.5, 0).setDepth(DEPTH_HUD).setInteractive({ useHandCursor: true });
+
+    const musicBtn = scene.add.text(RIGHT_PANEL_CX, 30, musicLabel(), {
+      ...toggleStyle, color: Settings.musicOn ? onColor : offColor,
+    }).setOrigin(0.5, 0).setDepth(DEPTH_HUD).setInteractive({ useHandCursor: true });
+
+    sfxBtn.on('pointerdown', () => {
+      Settings.setSfx(!Settings.sfxOn);
+      sfxBtn.setText(sfxLabel()).setColor(Settings.sfxOn ? onColor : offColor);
+    });
+
+    musicBtn.on('pointerdown', () => {
+      Settings.setMusic(!Settings.musicOn);
+      musicBtn.setText(musicLabel()).setColor(Settings.musicOn ? onColor : offColor);
+    });
   }
 
   updateBaseHp(baseHp) {

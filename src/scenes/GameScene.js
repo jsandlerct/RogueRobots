@@ -16,8 +16,8 @@ import {
   ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
   TOKEN_SPAWN_INTERVAL_MS, TOKEN_DROP_PROB_SMALL, TOKEN_DROP_PROB_MEDIUM,
   NPC_PURCHASE_INTERVAL_MS, NPC_FAVORITE_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
-  SPAWNBOT_INTERVAL_MS, DATAMINE_INTERVAL_MS, CARRIERBOT_INTERVAL_MS,
-  XP_TO_NEXT, MAX_LEVEL, MAX_FLOORS, XP_PER_KILL, XP_PER_FLOOR,
+  SPAWNBOT_DELAY_MS, SPAWNBOT_BURST_GAP_MS, SPAWNBOT_INTERVAL_MS, SPAWN_TOWER_INTERVAL_MS, DATAMINE_INTERVAL_MS, CARRIERBOT_INTERVAL_MS,
+  XP_TO_NEXT, MAX_LEVEL, MAX_FLOORS, SECRET_FLOOR, XP_PER_KILL, XP_PER_FLOOR,
   XP_BAR_H, XP_BAR_DEPTH, XP_BAR_COLOR_BG, XP_BAR_COLOR,
   CHARSEL_SAVE_KEY,
   PASSIVE_LEVEL_IMPROVED, PASSIVE_LEVEL_ADVANCED, PASSIVE_LEVEL_SUPERIOR,
@@ -38,6 +38,7 @@ import Unit from '../entities/Unit.js';
 import ResourceToken from '../entities/ResourceToken.js';
 import unitsData from '../data/units.json';
 import floorsData from '../data/floors.json';
+import Settings from '../data/Settings.js';
 
 // Fallback loadout when GameScene is started directly (dev/testing)
 const DEFAULT_LOADOUT = [
@@ -329,8 +330,10 @@ export default class GameScene extends Phaser.Scene {
       const path = await this._pathfinding.findPath(col, row, NPC_BASE_COL, NPC_BASE_ROW);
       if (path && path.length > 1) unit.followPath(this._trimPathToRange(path, unit.stats.range));
     }
-    if (stats.specialBehavior === 'spawnbot' || stats.specialBehavior === 'spawn_tower') {
-      this._startSpawnerInterval(unit, 'Bug', SPAWNBOT_INTERVAL_MS);
+    if (stats.specialBehavior === 'spawnbot') {
+      this._startSpawnbotSequence(unit);
+    } else if (stats.specialBehavior === 'spawn_tower') {
+      this._startSpawnerInterval(unit, 'Bug', SPAWN_TOWER_INTERVAL_MS);
     } else if (stats.specialBehavior === 'carrierbot') {
       this._startSpawnerInterval(unit, 'Punchbot', CARRIERBOT_INTERVAL_MS);
     } else if (stats.specialBehavior === 'datamine') {
@@ -364,6 +367,22 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
+  _startSpawnbotSequence(unit) {
+    this.time.delayedCall(SPAWNBOT_DELAY_MS, () => {
+      if (!unit.alive) return;
+      for (let i = 0; i < 3; i++) {
+        this.time.delayedCall(i * SPAWNBOT_BURST_GAP_MS, () => {
+          if (!unit.alive) return;
+          this._spawnUnitFromSpawner(unit, 'Bug');
+        });
+      }
+      // Destroy after all three async spawns have had time to resolve their pathfinding
+      this.time.delayedCall(2 * SPAWNBOT_BURST_GAP_MS + 200, () => {
+        if (unit.alive) unit.destroy();
+      });
+    });
+  }
+
   async _spawnUnitFromSpawner(spawner, unitName) {
     if (!spawner.alive) return;
     const [targetCol, targetRow] = spawner.team === 'player'
@@ -392,6 +411,7 @@ export default class GameScene extends Phaser.Scene {
         this._economy.awardDatamine(unit.team);
         this._refreshEconomyUI();
         this._pulseSprite(unit);
+        if (Settings.sfxOn && unit.team === 'player') this.sound.play('sfx_ding', { volume: 0.5 });
       },
     });
   }
@@ -446,6 +466,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Token lifecycle ───────────────────────────────────────────────────────
 
   _spawnToken() {
+    if (this._roundOver) return;
     const occupied = new Set(
       this._tokens.filter(t => t.alive).map(t => `${t.col},${t.row}`)
     );
@@ -478,9 +499,13 @@ export default class GameScene extends Phaser.Scene {
         if (Math.random() < 0.5) this._awardRandomResource();
         break;
       case 'advanced_scavenging':
-      case 'superior_scavenging':
         this._awardRandomResource();
         break;
+      case 'superior_scavenging':
+        this._awardRandomResource();
+        this._awardRandomResource();
+        break;
+      case 'superintelligence':   // also retains Perfected Scavenging kill drop
       case 'perfected_scavenging':
         this._economy.awardResources({ metal: 2, silicon: 1, batteries: 1 });
         this._refreshEconomyUI();
@@ -515,8 +540,12 @@ export default class GameScene extends Phaser.Scene {
         collected = true;
       } else {
         token.collect();
-        if (team === 'player') this._economy.collectToken(token.type, token.amount);
-        else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
+        if (team === 'player') {
+          this._economy.collectToken(token.type, token.amount);
+          if (Settings.sfxOn && unit.stats?.specialBehavior === 'scavenger') {
+            this.sound.play('sfx_ding', { volume: 0.5 });
+          }
+        } else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
         collected = true;
       }
     }
@@ -552,7 +581,19 @@ export default class GameScene extends Phaser.Scene {
     this._economy.spendNpc(pick.stats.cost);
     this._npcCooldowns.set(pick.i, now);
     this._hud.updateNpcResources(this._economy.npcResources);
-    this._deployNpcUnit(pick.unitName, pick.stats);
+    if (pick.stats.spawn === 'Drop') {
+      const walkable = [];
+      for (let r = 0; r < DIVIDE_ROW; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (this._grid[r][c] === TILE_WALKABLE) walkable.push({ col: c, row: r });
+        }
+      }
+      if (walkable.length === 0) return;
+      const { col, row } = walkable[Math.floor(Math.random() * walkable.length)];
+      this._deployNpcAtTile(pick.unitName, pick.stats, col, row);
+    } else {
+      this._deployNpcUnit(pick.unitName, pick.stats);
+    }
   }
 
   _spawnFavoriteUnit() {
@@ -582,29 +623,38 @@ export default class GameScene extends Phaser.Scene {
     this._combat.addUnit(unit);
     this.units.push(unit);
 
-    if (stats.moveSpeed !== 'none') {
+    if (stats.specialBehavior === 'floatbot_fly') {
+      const path = this._straightLinePath(col, row, PLAYER_BASE_COL, PLAYER_BASE_ROW);
+      unit.followPath(this._trimPathToRange(path, stats.range));
+    } else if (stats.moveSpeed !== 'none') {
       const path = await this._pathfinding.findPath(col, row, PLAYER_BASE_COL, PLAYER_BASE_ROW);
       if (path && path.length > 1) unit.followPath(this._trimPathToRange(path, stats.range));
     }
-    if (stats.specialBehavior === 'spawnbot' || stats.specialBehavior === 'spawn_tower') {
-      this._startSpawnbotLoop(unit);
+    if (stats.specialBehavior === 'spawnbot') {
+      this._startSpawnbotSequence(unit);
+    } else if (stats.specialBehavior === 'spawn_tower') {
+      this._startSpawnerInterval(unit, 'Bug', SPAWN_TOWER_INTERVAL_MS);
     }
   }
 
   async _deployNpcUnit(unitName, stats) {
     let path;
-    const lanes = this._mapPaths?.npc;
-    if (lanes?.length > 0) {
-      path = lanes[Math.floor(Math.random() * lanes.length)];
+    if (stats.specialBehavior === 'floatbot_fly') {
+      path = this._straightLinePath(NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW);
     } else {
-      path = await this._pathfinding.findPath(
-        NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW
-      );
+      const lanes = this._mapPaths?.npc;
+      if (lanes?.length > 0) {
+        path = lanes[Math.floor(Math.random() * lanes.length)];
+      } else {
+        path = await this._pathfinding.findPath(
+          NPC_BASE_COL, NPC_BASE_ROW, PLAYER_BASE_COL, PLAYER_BASE_ROW
+        );
+      }
     }
     if (!path || path.length <= 1) return;
     const unit = new Unit(this, path[0].x, path[0].y, unitName, 'npc');
     this._attachTokenCallback(unit, 'npc');
-    unit.followPath(this._trimPathToRange(path, stats.range));
+    if (stats.moveSpeed !== 'none') unit.followPath(this._trimPathToRange(path, stats.range));
     this._combat.addUnit(unit);
     this.units.push(unit);
   }
@@ -670,6 +720,7 @@ export default class GameScene extends Phaser.Scene {
         level:        this._character.level,
         xp:           this._character.xp,
         highestFloor: this._character.highestFloor ?? 1,
+        wins:         this._character.wins ?? 0,
       };
       localStorage.setItem(CHARSEL_SAVE_KEY, JSON.stringify(saves));
     } catch {}
@@ -679,6 +730,9 @@ export default class GameScene extends Phaser.Scene {
 
   _onRoundEnd(winner) {
     if (winner === 'player') {
+      if (this._character && this._floor === SECRET_FLOOR) {
+        this._character = { ...this._character, wins: (this._character.wins ?? 0) + 1 };
+      }
       this._awardXP(XP_PER_FLOOR * this._floor);
       if (this._character && this._floor > (this._character.highestFloor ?? 1)) {
         this._character = { ...this._character, highestFloor: this._floor };
@@ -690,8 +744,25 @@ export default class GameScene extends Phaser.Scene {
     this._exitDropMode();
     this._spawnSystem.stop();
 
+    // Secret boss cleared → true ending
+    if (winner === 'player' && this._floor === SECRET_FLOOR) {
+      this.scene.start('TrueVictoryScene', { character: this._character });
+      return;
+    }
+
+    // Floor 15 cleared → fake victory then The Board reveal
+    if (winner === 'player' && this._floor >= MAX_FLOORS) {
+      this.scene.start('VictoryScene', {
+        character:    this._character,
+        slotIndex:    this._slotIndex,
+        loadout:      this._loadout,
+        powerupSlots: this._powerupSystem.slots,
+      });
+      return;
+    }
+
     const isWin      = winner === 'player';
-    const isRunEnd   = isWin && this._floor >= MAX_FLOORS;
+    const isRunEnd   = false;
     const msg        = isRunEnd ? 'RUN COMPLETE!' : (isWin ? `FLOOR ${this._floor} CLEAR!` : 'YOU LOSE!');
     const msgColor   = isWin ? '#44ff44' : '#ff4444';
 
@@ -817,7 +888,18 @@ export default class GameScene extends Phaser.Scene {
 
   _activateFortify() {
     this._combat.activateFortify(POWERUP_FORTIFY_DURATION_MS);
-    this._showFeedback('FORTIFY! Base shielded for 8s');
+    this._showFeedback('FORTIFY! Server shielded for 20s');
+
+    const healTimer = this.time.addEvent({
+      delay: 1000,
+      repeat: POWERUP_FORTIFY_DURATION_MS / 1000 - 1,
+      callback: () => {
+        if (this._roundOver) { healTimer.remove(); return; }
+        this._combat.baseHp.player = Math.min(BASE_HP, this._combat.baseHp.player + 1);
+        this._hud.updateBaseHp(this._combat.baseHp);
+        this._updateBaseSprites(this._combat.baseHp);
+      },
+    });
   }
 
   // ── Feedback ──────────────────────────────────────────────────────────────

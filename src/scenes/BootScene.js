@@ -43,6 +43,16 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('silicon2', 'assets/images/silicon2.png');
     this.load.image('silicon3', 'assets/images/silicon3.png');
 
+    this.load.audio('sfx_clap',         'assets/audio/sfx/24786__young_daddy__clap-mix.wav');
+    this.load.audio('sfx_wilhelm',      'assets/audio/sfx/813308__qubodup__wilhelm-scream.wav');
+    this.load.audio('sfx_blaster_pew',  'assets/audio/sfx/819682__hotpin7__blaster-pew.wav');
+    this.load.audio('sfx_laser_gun',    'assets/audio/sfx/273497__thegeekranger__laser-gun-shot.wav');
+    this.load.audio('sfx_metal_crash',  'assets/audio/sfx/675462__craigsmith__s10-13-large-hard-metal-crash-optical.wav');
+    this.load.audio('sfx_metal_clang',  'assets/audio/sfx/435681__eben-frostey__metallic-clang.mp3');
+    this.load.audio('sfx_explosion',    'assets/audio/sfx/186967__readeonly__explosion5.wav');
+    this.load.audio('sfx_ding',         'assets/audio/sfx/615949__julesv4__ding-effect.wav');
+
+    this.load.image('the_board',           'assets/images/the board.png');
     this.load.image('powerup_emp',        'assets/images/emp blast icon.png');
     this.load.image('powerup_airstrike',  'assets/images/airstrike icon.png');
     this.load.image('powerup_overcharge', 'assets/images/overcharge icon.png');

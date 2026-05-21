@@ -81,7 +81,11 @@ export default class PowerupBar {
         .setDepth(DEPTH_POWERUP_SLOT + 1)
         .setVisible(false);
 
-      this._slots.push({ bg, icon, filled: false, type: null });
+      const plusLabel = this._scene.add.text(cx, cy, '+', {
+        fontSize: '32px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(DEPTH_POWERUP_SLOT + 1).setVisible(false);
+
+      this._slots.push({ bg, icon, plusLabel, filled: false, type: null });
     }
 
     this._buildTooltip();
@@ -133,14 +137,21 @@ export default class PowerupBar {
       slot.type   = type ?? null;
 
       if (type) {
-        const key = ICON_KEY[type];
-        if (this._scene.textures.exists(key)) {
-          slot.icon.setTexture(key).setVisible(true);
-        } else {
+        if (type === 'surge') {
           slot.icon.setVisible(false);
+          slot.plusLabel.setVisible(true);
+        } else {
+          const key = ICON_KEY[type];
+          slot.plusLabel.setVisible(false);
+          if (this._scene.textures.exists(key)) {
+            slot.icon.setTexture(key).setVisible(true);
+          } else {
+            slot.icon.setVisible(false);
+          }
         }
       } else {
         slot.icon.setVisible(false);
+        slot.plusLabel.setVisible(false);
       }
       this._updateSlotStyle(i);
     }

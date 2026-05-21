@@ -3,16 +3,17 @@ import {
   CANVAS_W, CANVAS_H,
   STARTING_RESOURCES, TESTMODE_RESOURCES, LOADOUT_NUM_SLOTS, TESTMODE,
   FLOOR_RES_MIN_METAL,
-  MAX_FLOORS,
+  MAX_FLOORS, SECRET_FLOOR,
   DRAFT_CARD_W, DRAFT_CARD_H, DRAFT_CARD_PAD, DRAFT_CARD_ROW_Y,
   DRAFT_SLOT_Y, DRAFT_SLOT_W, DRAFT_SLOT_H, DRAFT_SLOT_MARGIN,
-  DRAFT_PASSIVE_Y, DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y,
+  DRAFT_LOADOUT_BTN_Y, DRAFT_PASSIVE_Y, DRAFT_CONFIRM_Y, DRAFT_CONFIRM_BTN_W, DRAFT_CONFIRM_BTN_H, DRAFT_TESTMODE_Y, DRAFT_AUDIO_Y,
   DRAFT_COLOR_BG, DRAFT_COLOR_SLOT_EMPTY, DRAFT_COLOR_CONFIRM_BG, DRAFT_COLOR_LOCKED,
   DRAFT_SAVE_KEY, DEPTH_DRAG_GHOST,
   PASSIVE_LEVEL_IMPROVED, PASSIVE_LEVEL_ADVANCED, PASSIVE_LEVEL_SUPERIOR,
   PASSIVE_LEVEL_PERFECTED, PASSIVE_LEVEL_ASI,
 } from '../data/constants.js';
 import unitsData from '../data/units.json';
+import Settings from '../data/Settings.js';
 import floorsData from '../data/floors.json';
 import { UNIT_SPRITE_KEY } from '../data/spriteData.js';
 
@@ -22,6 +23,16 @@ function _rollStartingResources(level) {
   // total = level + 3; guaranteed 3 metal already accounted for, so distribute `level` extra
   for (let i = 0; i < level; i++) res[keys[Math.floor(Math.random() * 3)]]++;
   return res;
+}
+
+function _formatSlotName(name) {
+  if (name.includes(' ')) return name.replace(' ', '\n');
+  if (name.endsWith('bot'))  return name.slice(0, -3)  + '\nbot';
+  if (name.endsWith('trap')) return name.slice(0, -4)  + '\ntrap';
+  if (name.endsWith('mine')) return name.slice(0, -4)  + '\nmine';
+  if (name.endsWith('naut')) return name.slice(0, -4)  + '\nnaut';
+  if (name.length > 7) { const m = Math.ceil(name.length / 2); return name.slice(0, m) + '\n' + name.slice(m); }
+  return name;
 }
 
 // 5 rows × 4 cols = 20 total slots; slots beyond available count show as LOCKED
@@ -42,10 +53,11 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   init(data) {
-    this._testMode  = data?.testMode  ?? (TESTMODE === 1);
-    this._character = data?.character ?? null;
-    this._slotIndex = data?.slotIndex ?? null;
-    this._floor     = data?.floor     ?? 1;
+    this._testMode   = data?.testMode  ?? (TESTMODE === 1);
+    this._testTarget = data?.testTarget ?? null; // 'VictoryScene' | 'TrueVictoryScene' | null
+    this._character  = data?.character ?? null;
+    this._slotIndex  = data?.slotIndex ?? null;
+    this._floor      = data?.floor     ?? 1;
     this._powerupSlots = data?.powerupSlots ?? [null, null, null];
     this._savedLoadout = data?.loadout ?? null;
     this._startingResources = data?.startingResources
@@ -98,7 +110,11 @@ export default class DraftScene extends Phaser.Scene {
     this._buildLoadoutSlots();
     this._buildPassiveInfo();
     this._buildConfirmButton();
-    this._buildTestModeToggle();
+    // this._buildTestModeToggle();
+    // this._buildFloorDropdown();
+    this._buildHelpButton();
+    this._buildFeedbackButton();
+    this._buildAudioToggles();
     this._refresh();
     this._startCardAnimCycle();
     this._setupDrag();
@@ -109,7 +125,23 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _buildHeader() {
-    const cx       = CANVAS_W / 2;
+    const cx = CANVAS_W / 2;
+
+    if (this._testTarget === 'VictoryScene' || this._testTarget === 'TrueVictoryScene') {
+      const label = this._testTarget === 'VictoryScene' ? 'FALSE VICTORY SCREEN' : 'TRUE VICTORY SCREEN';
+      const color = this._testTarget === 'VictoryScene' ? '#ffcc44' : '#44ffcc';
+      this.add.text(cx, 6, `TEST: ${label}`, {
+        fontSize: '15px', color, fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5, 0);
+      this.add.text(cx, 30, 'Click CONFIRM to jump to this screen', {
+        fontSize: '12px', color: '#8899bb', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+      this.add.text(cx, 110, '── ALL UNITS UNLOCKED (TEST MODE) ──', {
+        fontSize: '9px', color: '#ff9900', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+      return;
+    }
+
     const floorCfg = floorsData.find(f => f.floor === this._floor);
     const aiName   = floorCfg?.ai ?? 'ENEMY';
     const favUnit  = floorCfg?.favoriteUnit ?? '';
@@ -117,12 +149,16 @@ export default class DraftScene extends Phaser.Scene {
     const charName = this._character?.name ?? 'Agent';
     const quote    = rawQuote.replace('<player name>', charName);
 
-    this.add.text(cx, 6, `FLOOR ${this._floor} / ${MAX_FLOORS}`, {
-      fontSize: '15px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
+    const isSecretFloor = this._floor === SECRET_FLOOR;
+    const floorLabel = isSecretFloor ? '⚠  HIDDEN FLOOR  ⚠' : `FLOOR ${this._floor} / ${MAX_FLOORS}`;
+    const floorColor = isSecretFloor ? '#ff4444' : '#ffffff';
+    this.add.text(cx, 6, floorLabel, {
+      fontSize: '15px', color: floorColor, fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     this.add.text(cx, 26, `vs ${aiName.toUpperCase()}`, {
-      fontSize: '12px', color: '#ff9999', fontFamily: 'monospace', fontStyle: 'bold',
+      fontSize: '12px', color: isSecretFloor ? '#ff2222' : '#ff9999',
+      fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
     if (quote) {
@@ -133,7 +169,7 @@ export default class DraftScene extends Phaser.Scene {
     }
 
     if (favUnit) {
-      this.add.text(cx, 65, `Favorite robot: ${favUnit}`, {
+      this.add.text(cx, 70, `Favorite robot: ${favUnit}`, {
         fontSize: '13px', color: '#ffcccc', fontFamily: 'monospace',
       }).setOrigin(0.5, 0);
     }
@@ -144,10 +180,11 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '13px', color: '#ffdd88', fontFamily: 'monospace', fontStyle: 'bold',
     }).setOrigin(0.5, 0);
 
-    const subtitle = this._testMode ? '── ALL UNITS UNLOCKED (TEST MODE) ──' : '── SELECT UNITS (Lvl 1 unlocked) ──';
-    this.add.text(cx, 110, subtitle, {
-      fontSize: '9px', color: this._testMode ? '#ff9900' : '#556677', fontFamily: 'monospace',
-    }).setOrigin(0.5, 0);
+    if (this._testMode) {
+      this.add.text(cx, 110, '── ALL UNITS UNLOCKED (TEST MODE) ──', {
+        fontSize: '9px', color: '#ff9900', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+    }
   }
 
   _buildUnitCards() {
@@ -251,25 +288,34 @@ export default class DraftScene extends Phaser.Scene {
       fontSize: '11px', color: '#556677', fontFamily: 'monospace',
     }).setOrigin(0.5, 0);
 
-    const clearBtn = this.add.text(SLOT_START_X, DRAFT_SLOT_Y - 20, '[ Clear ]', {
+    const btnH    = 22;
+    const btnCY   = DRAFT_LOADOUT_BTN_Y;
+
+    const clearBg = this.add.rectangle(SLOT_START_X + 36, btnCY, 72, btnH, 0x1e0808)
+      .setStrokeStyle(1, 0x663333).setDepth(2);
+    const clearBtn = this.add.text(SLOT_START_X + 36, btnCY, 'Clear', {
       fontSize: '11px', color: '#cc6666', fontFamily: 'monospace',
-    }).setOrigin(0, 0).setDepth(2).setInteractive({ useHandCursor: true });
-    clearBtn.on('pointerover', () => clearBtn.setColor('#ff8888'));
-    clearBtn.on('pointerout',  () => clearBtn.setColor('#cc6666'));
+    }).setOrigin(0.5).setDepth(3).setInteractive({ useHandCursor: true });
+    clearBtn.on('pointerover', () => { clearBg.setStrokeStyle(1, 0x994444); clearBtn.setColor('#ff8888'); });
+    clearBtn.on('pointerout',  () => { clearBg.setStrokeStyle(1, 0x663333); clearBtn.setColor('#cc6666'); });
     clearBtn.on('pointerdown', () => this._clearLoadout());
 
-    const loadBtn = this.add.text(rightEdge, DRAFT_SLOT_Y - 20, '[ Load ]', {
+    const loadBg = this.add.rectangle(rightEdge - 33, btnCY, 66, btnH, 0x080e1e)
+      .setStrokeStyle(1, 0x334466).setDepth(2);
+    const loadBtn = this.add.text(rightEdge - 33, btnCY, 'Load', {
       fontSize: '11px', color: '#6688cc', fontFamily: 'monospace',
-    }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
-    loadBtn.on('pointerover', () => loadBtn.setColor('#88aaff'));
-    loadBtn.on('pointerout',  () => loadBtn.setColor('#6688cc'));
+    }).setOrigin(0.5).setDepth(3).setInteractive({ useHandCursor: true });
+    loadBtn.on('pointerover', () => { loadBg.setStrokeStyle(1, 0x5577aa); loadBtn.setColor('#88aaff'); });
+    loadBtn.on('pointerout',  () => { loadBg.setStrokeStyle(1, 0x334466); loadBtn.setColor('#6688cc'); });
     loadBtn.on('pointerdown', () => this._loadDraft());
 
-    this._saveBtn = this.add.text(rightEdge - 64, DRAFT_SLOT_Y - 20, '[ Save ]', {
+    this._saveBtnBg = this.add.rectangle(rightEdge - 105, btnCY, 66, btnH, 0x080e1e)
+      .setStrokeStyle(1, 0x334466).setDepth(2);
+    this._saveBtn = this.add.text(rightEdge - 105, btnCY, 'Save', {
       fontSize: '11px', color: '#6688cc', fontFamily: 'monospace',
-    }).setOrigin(1, 0).setDepth(2).setInteractive({ useHandCursor: true });
-    this._saveBtn.on('pointerover', () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#88aaff'); });
-    this._saveBtn.on('pointerout',  () => { if (this._saveBtn.style.color !== '#44cc88') this._saveBtn.setColor('#6688cc'); });
+    }).setOrigin(0.5).setDepth(3).setInteractive({ useHandCursor: true });
+    this._saveBtn.on('pointerover', () => { if (!this._saveBtnFlash) { this._saveBtnBg.setStrokeStyle(1, 0x5577aa); this._saveBtn.setColor('#88aaff'); } });
+    this._saveBtn.on('pointerout',  () => { if (!this._saveBtnFlash) { this._saveBtnBg.setStrokeStyle(1, 0x334466); this._saveBtn.setColor('#6688cc'); } });
     this._saveBtn.on('pointerdown', () => this._saveDraft());
 
     for (let i = 0; i < LOADOUT_NUM_SLOTS; i++) {
@@ -288,8 +334,8 @@ export default class DraftScene extends Phaser.Scene {
 
       const lbl = this.add.text(x + DRAFT_SLOT_W / 2, DRAFT_SLOT_Y + DRAFT_SLOT_H / 2,
         isLocked ? 'LOCK' : '', {
-          fontSize: '7px',
-          color: isLocked ? '#333344' : '#aaaacc',
+          fontSize: '13px',
+          color: isLocked ? '#333344' : '#000000',
           fontFamily: 'monospace', align: 'center',
           wordWrap: { width: DRAFT_SLOT_W - 4 },
         }
@@ -314,6 +360,57 @@ export default class DraftScene extends Phaser.Scene {
     this._confirmBtn.on('pointerdown', () => this._confirm());
   }
 
+  _buildHelpButton() {
+    const btnW = 116; const btnH = 22; const x = CANVAS_W - 8 - btnW; const y = 6;
+    const bg = this.add.rectangle(x + btnW / 2, y + btnH / 2, btnW, btnH, 0x0a1422)
+      .setStrokeStyle(1, 0x3355779).setDepth(5);
+    const btn = this.add.text(x + btnW / 2, y + btnH / 2, '? HOW TO PLAY', {
+      fontSize: '11px', color: '#6688aa', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(5).setInteractive({ useHandCursor: true });
+    btn.on('pointerover', () => { bg.setStrokeStyle(1, 0x5577aa); btn.setColor('#aaccff'); });
+    btn.on('pointerout',  () => { bg.setStrokeStyle(1, 0x335577); btn.setColor('#6688aa'); });
+    btn.on('pointerdown', () => window.open('how_to_play.html', '_blank'));
+  }
+
+  _buildFeedbackButton() {
+    const btnW = 130; const btnH = 22; const x = 8; const y = 6;
+    const bg = this.add.rectangle(x + btnW / 2, y + btnH / 2, btnW, btnH, 0x0d1117)
+      .setStrokeStyle(1, 0x2a3a4a).setDepth(5);
+    const btn = this.add.text(x + btnW / 2, y + btnH / 2, 'Feedback / Bugs', {
+      fontSize: '10px', color: '#778899', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(5).setInteractive({ useHandCursor: true });
+    btn.on('pointerover', () => { bg.setStrokeStyle(1, 0x445566); btn.setColor('#aabbcc'); });
+    btn.on('pointerout',  () => { bg.setStrokeStyle(1, 0x2a3a4a); btn.setColor('#778899'); });
+    btn.on('pointerdown', () => window.open('https://forms.gle/nEFacroJxVao8bXD9', '_blank'));
+  }
+
+  _buildAudioToggles() {
+    const cx = CANVAS_W / 2;
+
+    const sfxLabel   = () => Settings.sfxOn   ? '[SFX: ON]'   : '[SFX: OFF]';
+    const musicLabel = () => Settings.musicOn ? '[MUSIC: ON]' : '[MUSIC: OFF]';
+    const onColor    = '#55cc88';
+    const offColor   = '#445566';
+
+    const sfxBtn = this.add.text(cx - 58, DRAFT_AUDIO_Y, sfxLabel(), {
+      fontSize: '11px', color: Settings.sfxOn ? onColor : offColor, fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(2).setInteractive({ useHandCursor: true });
+
+    const musicBtn = this.add.text(cx + 62, DRAFT_AUDIO_Y, musicLabel(), {
+      fontSize: '11px', color: Settings.musicOn ? onColor : offColor, fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(2).setInteractive({ useHandCursor: true });
+
+    sfxBtn.on('pointerdown', () => {
+      Settings.setSfx(!Settings.sfxOn);
+      sfxBtn.setText(sfxLabel()).setColor(Settings.sfxOn ? onColor : offColor);
+    });
+
+    musicBtn.on('pointerdown', () => {
+      Settings.setMusic(!Settings.musicOn);
+      musicBtn.setText(musicLabel()).setColor(Settings.musicOn ? onColor : offColor);
+    });
+  }
+
   _buildTestModeToggle() {
     const cx      = CANVAS_W / 2;
     const checked = this._testMode ? '[X]' : '[ ]';
@@ -325,8 +422,96 @@ export default class DraftScene extends Phaser.Scene {
     }).setOrigin(0.5, 0).setDepth(2).setInteractive({ useHandCursor: true });
 
     btn.on('pointerdown', () => {
-      this.scene.restart({ testMode: !this._testMode, character: this._character, slotIndex: this._slotIndex, floor: this._floor, startingResources: this._startingResources });
+      this.scene.restart({ testMode: !this._testMode, character: this._character, slotIndex: this._slotIndex, floor: this._floor, testTarget: null, startingResources: this._startingResources });
     });
+  }
+
+  _buildFloorDropdown() {
+    if (!this._testMode) return;
+    const cx   = CANVAS_W / 2;
+    const btnY = DRAFT_TESTMODE_Y + 22;
+    const btnW = 240;
+    const btnH = 18;
+
+    const bg = this.add.rectangle(cx, btnY + btnH / 2, btnW, btnH, 0x0d1a2a)
+      .setStrokeStyle(1, 0x334466).setDepth(2).setInteractive({ useHandCursor: true });
+
+    this._dropdownLabel = this.add.text(cx, btnY + btnH / 2, `▾  ${this._getDropdownLabel()}`, {
+      fontSize: '12px', color: '#7799cc', fontFamily: 'monospace',
+    }).setOrigin(0.5).setDepth(3).setInteractive({ useHandCursor: true });
+
+    const open = () => this._openFloorDropdown();
+    bg.on('pointerdown', open);
+    this._dropdownLabel.on('pointerdown', open);
+  }
+
+  _getDropdownLabel() {
+    if (this._testTarget === 'VictoryScene')     return 'False Victory Screen';
+    if (this._testTarget === 'TrueVictoryScene') return 'True Victory Screen';
+    const floorCfg = floorsData.find(f => f.floor === this._floor);
+    const prefix   = this._floor === SECRET_FLOOR ? '⚠ ' : '';
+    return `${prefix}Floor ${this._floor}: ${floorCfg?.ai ?? '?'}`;
+  }
+
+  _openFloorDropdown() {
+    const depth  = 20;
+    const cx     = CANVAS_W / 2;
+    const rowH   = 19;
+    const panelW = 252;
+
+    const options = floorsData.map(f => ({
+      label:  `${f.floor === SECRET_FLOOR ? '⚠ ' : ''}Floor ${f.floor}: ${f.ai}`,
+      floor:  f.floor,
+      target: null,
+    }));
+    options.push({ label: '── False Victory Screen', floor: this._floor, target: 'VictoryScene' });
+    options.push({ label: '── True Victory Screen',  floor: this._floor, target: 'TrueVictoryScene' });
+
+    const panelH   = options.length * rowH + 8;
+    const panelBot = DRAFT_TESTMODE_Y + 20;
+    const panelTop = panelBot - panelH;
+
+    const overlay = this.add.rectangle(cx, CANVAS_H / 2, CANVAS_W, CANVAS_H, 0x000000, 0.45)
+      .setDepth(depth).setInteractive();
+
+    this.add.rectangle(cx, panelTop + panelH / 2, panelW, panelH, 0x0d1a2a)
+      .setStrokeStyle(1, 0x4466aa).setDepth(depth + 1);
+
+    const all = [overlay];
+
+    options.forEach((opt, i) => {
+      const rowY       = panelTop + 4 + i * rowH + rowH / 2;
+      const isSelected = opt.target === this._testTarget &&
+        (opt.target !== null || opt.floor === this._floor);
+
+      const rowBg = this.add.rectangle(cx, rowY, panelW - 4, rowH - 1,
+        isSelected ? 0x1a3a5a : 0x0d1a2a
+      ).setDepth(depth + 1).setInteractive({ useHandCursor: true });
+
+      const txt = this.add.text(cx - panelW / 2 + 10, rowY, opt.label, {
+        fontSize: '12px', color: isSelected ? '#88ddff' : '#aabbcc', fontFamily: 'monospace',
+      }).setOrigin(0, 0.5).setDepth(depth + 2);
+
+      all.push(rowBg, txt);
+
+      rowBg.on('pointerdown', () => {
+        all.forEach(o => o.destroy());
+        this.scene.restart({
+          testMode:          true,
+          character:         this._character,
+          slotIndex:         this._slotIndex,
+          floor:             opt.floor,
+          testTarget:        opt.target,
+          startingResources: TESTMODE_RESOURCES,
+          powerupSlots:      this._powerupSlots,
+          loadout:           this._loadout().length > 0 ? this._loadout() : null,
+        });
+      });
+      rowBg.on('pointerover', () => { if (!isSelected) { rowBg.setFillStyle(0x162636); txt.setColor('#ccddee'); } });
+      rowBg.on('pointerout',  () => { if (!isSelected) { rowBg.setFillStyle(0x0d1a2a); txt.setColor('#aabbcc'); } });
+    });
+
+    overlay.on('pointerdown', () => all.forEach(o => o.destroy()));
   }
 
   get _total() { return Object.values(this._counts).reduce((a, b) => a + b, 0); }
@@ -364,6 +549,19 @@ export default class DraftScene extends Phaser.Scene {
   }
 
   _confirm() {
+    if (this._testTarget === 'VictoryScene') {
+      this.scene.start('VictoryScene', {
+        character:    this._character,
+        slotIndex:    this._slotIndex,
+        loadout:      this._loadout(),
+        powerupSlots: this._powerupSlots,
+      });
+      return;
+    }
+    if (this._testTarget === 'TrueVictoryScene') {
+      this.scene.start('TrueVictoryScene', { character: this._character });
+      return;
+    }
     if (this._total === 0) return;
     this.scene.start('GameScene', {
       loadout:           this._loadout(),
@@ -378,8 +576,14 @@ export default class DraftScene extends Phaser.Scene {
 
   _saveDraft() {
     localStorage.setItem(DRAFT_SAVE_KEY, JSON.stringify(this._counts));
+    this._saveBtnFlash = true;
     this._saveBtn.setColor('#44cc88');
-    this.time.delayedCall(800, () => this._saveBtn.setColor('#6688cc'));
+    this._saveBtnBg.setStrokeStyle(1, 0x228844);
+    this.time.delayedCall(800, () => {
+      this._saveBtnFlash = false;
+      this._saveBtn.setColor('#6688cc');
+      this._saveBtnBg.setStrokeStyle(1, 0x334466);
+    });
   }
 
   _loadDraft() {
@@ -419,7 +623,7 @@ export default class DraftScene extends Phaser.Scene {
       } else {
         this._slotRects[i].setFillStyle(DRAFT_COLOR_SLOT_EMPTY);
       }
-      this._slotLabels[i].setText(filled ? loadout[i].replace(' ', '\n') : '');
+      this._slotLabels[i].setText(filled ? _formatSlotName(loadout[i]) : '');
     }
 
     this._confirmBtn.setColor(this._total > 0 ? '#ffffff' : '#555566');
@@ -493,34 +697,55 @@ export default class DraftScene extends Phaser.Scene {
     overlay.on('pointerdown', cleanup);
   }
 
-  _passiveInfo(level) {
-    if (level >= PASSIVE_LEVEL_ASI)       return { name: 'Artificial Superintelligence', desc: 'Begin each round with a free Juggernaut' };
-    if (level >= PASSIVE_LEVEL_PERFECTED) return { name: 'Perfected Scavenging',         desc: 'Earn +2 Metal, +1 Si, +1 B on each kill' };
-    if (level >= PASSIVE_LEVEL_SUPERIOR)  return { name: 'Superior Scavenging',          desc: 'Earn +1 Si or +1 B on each kill' };
-    if (level >= PASSIVE_LEVEL_ADVANCED)  return { name: 'Advanced Scavenging',          desc: 'Earn +1 Si or +1 B on each kill' };
-    if (level >= PASSIVE_LEVEL_IMPROVED)  return { name: 'Improved Scavenging',          desc: '50% chance to earn +1 Si or +1 B on each kill' };
-    return null;
+  _passiveInfoList(level) {
+    if (level >= PASSIVE_LEVEL_ASI) return [
+      { name: 'Perfected Scavenging',         desc: '+2 Metal, +1 Si, +1 B per kill' },
+      { name: 'Artificial Superintelligence', desc: 'Free Juggernaut each round'      },
+    ];
+    if (level >= PASSIVE_LEVEL_PERFECTED) return [{ name: 'Perfected Scavenging',  desc: 'Earn +2 Metal, +1 Si, +1 B on each kill' }];
+    if (level >= PASSIVE_LEVEL_SUPERIOR)  return [{ name: 'Superior Scavenging',   desc: 'Earn +2 random resources on each kill'   }];
+    if (level >= PASSIVE_LEVEL_ADVANCED)  return [{ name: 'Advanced Scavenging',   desc: 'Earn +1 Si or +1 B on each kill'         }];
+    if (level >= PASSIVE_LEVEL_IMPROVED)  return [{ name: 'Improved Scavenging',   desc: '50% chance to earn +1 Si or +1 B on kill'}];
+    return [];
   }
 
   _buildPassiveInfo() {
     if (!this._character) return;
-    const level = this._character.level;
-    const cx    = CANVAS_W / 2;
-    const info  = this._passiveInfo(level);
+    const skills = this._passiveInfoList(this._character.level);
 
-    if (!info) {
-      this.add.text(cx, DRAFT_PASSIVE_Y + 6, `Passive skill unlocks at level ${PASSIVE_LEVEL_IMPROVED}`, {
+    if (skills.length === 0) {
+      this.add.text(CANVAS_W / 2, DRAFT_PASSIVE_Y + 6, `Passive skill unlocks at level ${PASSIVE_LEVEL_IMPROVED}`, {
         fontSize: '11px', color: '#2e3a46', fontFamily: 'monospace',
       }).setOrigin(0.5, 0);
       return;
     }
 
-    this.add.text(cx, DRAFT_PASSIVE_Y, `✦ ${info.name}`, {
-      fontSize: '12px', color: '#ffcc44', fontFamily: 'monospace', fontStyle: 'bold',
-    }).setOrigin(0.5, 0);
-    this.add.text(cx, DRAFT_PASSIVE_Y + 16, info.desc, {
-      fontSize: '11px', color: '#8899bb', fontFamily: 'monospace',
-    }).setOrigin(0.5, 0);
+    if (skills.length === 1) {
+      const info = skills[0];
+      this.add.text(CANVAS_W / 2, DRAFT_PASSIVE_Y, `✦ ${info.name}`, {
+        fontSize: '12px', color: '#ffcc44', fontFamily: 'monospace', fontStyle: 'bold',
+      }).setOrigin(0.5, 0);
+      this.add.text(CANVAS_W / 2, DRAFT_PASSIVE_Y + 16, info.desc, {
+        fontSize: '11px', color: '#8899bb', fontFamily: 'monospace',
+      }).setOrigin(0.5, 0);
+      return;
+    }
+
+    // Two skills side-by-side (ASI level)
+    const centers = [CANVAS_W / 4, 3 * CANVAS_W / 4];
+    this.add.rectangle(CANVAS_W / 2, DRAFT_PASSIVE_Y + 14, 1, 30, 0x334455).setDepth(1);
+    for (let i = 0; i < skills.length; i++) {
+      const cx   = centers[i];
+      const info = skills[i];
+      this.add.text(cx, DRAFT_PASSIVE_Y, `✦ ${info.name}`, {
+        fontSize: '11px', color: '#ffcc44', fontFamily: 'monospace', fontStyle: 'bold',
+        align: 'center',
+      }).setOrigin(0.5, 0);
+      this.add.text(cx, DRAFT_PASSIVE_Y + 16, info.desc, {
+        fontSize: '10px', color: '#8899bb', fontFamily: 'monospace',
+        align: 'center',
+      }).setOrigin(0.5, 0);
+    }
   }
 
   _setupDrag() {

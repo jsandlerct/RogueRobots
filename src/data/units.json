@@ -94,7 +94,7 @@
     "atkSpeed": "medium",
     "specialBehavior": null,
     "cooldown": 10,
-    "unlockLevel": 5
+    "unlockLevel": 11
   },
   {
     "name": "Floatbot",
@@ -126,7 +126,7 @@
     "atkSpeed": "none",
     "specialBehavior": "boomtrap",
     "cooldown": 20,
-    "unlockLevel": 7
+    "unlockLevel": 18
   },
   {
     "name": "Cannonbot",
@@ -153,7 +153,7 @@
     "hp": 15,
     "dmg": 0,
     "range": 1,
-    "armor": 0,
+    "armor": 1,
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": null,
@@ -174,7 +174,7 @@
     "atkSpeed": "none",
     "specialBehavior": "datamine",
     "cooldown": 30,
-    "unlockLevel": 11
+    "unlockLevel": 5
   },
   {
     "name": "Snipebot",
@@ -187,7 +187,7 @@
     "range": 7,
     "armor": 0,
     "moveSpeed": "slow",
-    "atkSpeed": "slow",
+    "atkSpeed": "veryslow",
     "specialBehavior": null,
     "cooldown": 10,
     "unlockLevel": 12
@@ -251,7 +251,7 @@
     "range": 7,
     "armor": 1,
     "moveSpeed": "none",
-    "atkSpeed": "slow",
+    "atkSpeed": "veryslow",
     "specialBehavior": null,
     "cooldown": 25,
     "unlockLevel": 17
@@ -265,12 +265,12 @@
     "hp": 7,
     "dmg": 2,
     "range": 1,
-    "armor": 0,
+    "armor": 1,
     "moveSpeed": "slow",
     "atkSpeed": "medium",
     "specialBehavior": null,
     "cooldown": 7,
-    "unlockLevel": 18
+    "unlockLevel": 7
   },
   {
     "name": "Spawn Tower",
@@ -314,7 +314,7 @@
     "dmg": 1,
     "range": 3,
     "armor": 0,
-    "moveSpeed": "medium",
+    "moveSpeed": "slow",
     "atkSpeed": "medium",
     "specialBehavior": "medibot",
     "cooldown": 10,

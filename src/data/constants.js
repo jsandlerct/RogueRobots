@@ -38,7 +38,10 @@ export const DIVIDE_ROW      = 8;   // rows 0–7 NPC territory; rows 8–15 pla
 export const PLAYER_SPAWN_INTERVAL_MS     = 4000;
 export const NPC_SPAWN_INTERVAL_MS        = 3000;
 export const NPC_FAVORITE_SPAWN_INTERVAL_MS = 60000;
+export const SPAWNBOT_DELAY_MS        = 5000;
+export const SPAWNBOT_BURST_GAP_MS    = 500;
 export const SPAWNBOT_INTERVAL_MS     = 8000;
+export const SPAWN_TOWER_INTERVAL_MS  = 5000;
 export const DATAMINE_INTERVAL_MS     = 10000;
 export const CARRIERBOT_INTERVAL_MS   = 10000;
 export const ESCALATION = [
@@ -56,7 +59,7 @@ export const TOKEN_DROP_PROB_SMALL    = 0.40;  // amount 1
 export const TOKEN_DROP_PROB_MEDIUM   = 0.50;  // amount 2; remaining 0.10 = large (amount 3)
 
 // ── Combat ────────────────────────────────────────────────────────────────────
-export const ATK_MS        = { slow: 2000, medium: 1000, fast: 500 };
+export const ATK_MS        = { veryslow: 5000, slow: 3000, medium: 1000, fast: 500 };
 export const MIN_DAMAGE    = 1;
 export const RANGE_TOLERANCE   = 0.5;
 export const BOOMBOT_AOE_RADIUS = 1.5;
@@ -152,11 +155,13 @@ export const DRAFT_SLOT_Y           = 506;
 export const DRAFT_SLOT_W           = 56;
 export const DRAFT_SLOT_H           = 50;
 export const DRAFT_SLOT_MARGIN      = 3;
-export const DRAFT_PASSIVE_Y        = 562;
-export const DRAFT_CONFIRM_Y        = 598;
+export const DRAFT_LOADOUT_BTN_Y    = 571;
+export const DRAFT_PASSIVE_Y        = 592;
+export const DRAFT_CONFIRM_Y        = 628;
 export const DRAFT_CONFIRM_BTN_W    = 160;
 export const DRAFT_CONFIRM_BTN_H    = 36;
 export const DRAFT_TESTMODE_Y       = 652;
+export const DRAFT_AUDIO_Y          = 676;
 export const DRAFT_COLOR_BG         = 0x0d0d1a;
 export const DRAFT_COLOR_SLOT_EMPTY = 0x111122;
 export const DRAFT_COLOR_CONFIRM_BG = 0x334455;
@@ -171,6 +176,7 @@ export const XP_TO_NEXT = [
 ];
 export const MAX_LEVEL    = 25;
 export const MAX_FLOORS   = 15;
+export const SECRET_FLOOR = 16;
 export const XP_PER_KILL  = 1;
 export const XP_PER_FLOOR = 25;  // multiplied by floor number on base destroy
 
@@ -180,7 +186,7 @@ export const POWERUP_DROP_CHANCE            = 0.50;
 export const POWERUP_TYPES                  = ['emp', 'airstrike', 'overcharge', 'supply', 'surge', 'fortify'];
 export const POWERUP_EMP_DURATION_MS        = 5000;
 export const POWERUP_OVERCHARGE_DURATION_MS = 10000;
-export const POWERUP_FORTIFY_DURATION_MS    = 8000;
+export const POWERUP_FORTIFY_DURATION_MS    = 20000;
 export const POWERUP_SUPPLY_RESOURCES       = { metal: 10, silicon: 5, batteries: 5 };
 export const POWERUP_SURGE_COUNT            = 5;
 
@@ -207,7 +213,7 @@ export const POWERUP_DESCRIPTIONS   = {
   overcharge: { name: 'Overcharge',  desc: 'Your robots deal double damage for 10s.' },
   supply:     { name: 'Supply Drop', desc: 'Gain 10 Metal, 5 Silicon, 5 Batteries.' },
   surge:      { name: 'Surge',       desc: 'Spawns 5 of your auto-spawn robot now.' },
-  fortify:    { name: 'Fortify',     desc: 'Your base takes no damage for 8s.' },
+  fortify:    { name: 'Fortify',     desc: 'Your server takes no damage for 20s.' },
 };
 
 // ── Passive skills ────────────────────────────────────────────────────────────
