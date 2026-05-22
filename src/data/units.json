@@ -12,6 +12,7 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 0,
     "unlockLevel": null
   },
@@ -28,6 +29,7 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 5,
     "unlockLevel": 1
   },
@@ -44,6 +46,7 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 5,
     "unlockLevel": 2
   },
@@ -60,6 +63,7 @@
     "moveSpeed": "fast",
     "atkSpeed": "slow",
     "specialBehavior": "scavenger",
+    "specialDesc": "Seeks nearest resource or powerup instead of the enemy base. Idles until the next one drops.",
     "hideOutline": true,
     "cooldown": 5,
     "unlockLevel": 3
@@ -77,6 +81,7 @@
     "moveSpeed": "fast",
     "atkSpeed": "fast",
     "specialBehavior": "boombot_aoe",
+    "specialDesc": "AoE damage in a small radius on first attack, then self-destructs.",
     "cooldown": 5,
     "unlockLevel": 4
   },
@@ -93,6 +98,7 @@
     "moveSpeed": "none",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": "Stationary robot with armor and ranged attack.",
     "cooldown": 10,
     "unlockLevel": 11
   },
@@ -109,6 +115,7 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": "floatbot_fly",
+    "specialDesc": "Flies in a straight line to the enemy base. Can only be attacked by units with range > 1.",
     "cooldown": 7,
     "unlockLevel": 6
   },
@@ -125,6 +132,7 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": "boomtrap",
+    "specialDesc": "When an enemy enters its range, explodes for AoE damage then self-destructs.",
     "cooldown": 20,
     "unlockLevel": 18
   },
@@ -141,6 +149,7 @@
     "moveSpeed": "slow",
     "atkSpeed": "slow",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 30,
     "unlockLevel": 8
   },
@@ -157,6 +166,7 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": null,
+    "specialDesc": "Does not attack.",
     "cooldown": 25,
     "unlockLevel": 9
   },
@@ -173,6 +183,7 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": "datamine",
+    "specialDesc": "Delivers 1 of each resource every 5s.",
     "cooldown": 30,
     "unlockLevel": 5
   },
@@ -189,6 +200,7 @@
     "moveSpeed": "slow",
     "atkSpeed": "veryslow",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 10,
     "unlockLevel": 12
   },
@@ -205,6 +217,7 @@
     "moveSpeed": "medium",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 5,
     "unlockLevel": 13
   },
@@ -221,6 +234,7 @@
     "moveSpeed": "none",
     "atkSpeed": "none",
     "specialBehavior": "spawnbot",
+    "specialDesc": "After 5s, self-destructs and spawns 3 Bugs.",
     "cooldown": 10,
     "unlockLevel": 14
   },
@@ -237,6 +251,7 @@
     "moveSpeed": "fast",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 1,
     "unlockLevel": 16
   },
@@ -253,6 +268,7 @@
     "moveSpeed": "none",
     "atkSpeed": "veryslow",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 25,
     "unlockLevel": 17
   },
@@ -269,6 +285,7 @@
     "moveSpeed": "slow",
     "atkSpeed": "medium",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 7,
     "unlockLevel": 7
   },
@@ -285,6 +302,7 @@
     "moveSpeed": "none",
     "atkSpeed": "medium",
     "specialBehavior": "spawn_tower",
+    "specialDesc": "Fires like a Zap Tower and spawns a Bug every 5s.",
     "cooldown": 20,
     "unlockLevel": 19
   },
@@ -301,6 +319,7 @@
     "moveSpeed": "veryslow",
     "atkSpeed": "slow",
     "specialBehavior": "carrierbot",
+    "specialDesc": "Spawns a Punchbot every 10s.",
     "cooldown": 30,
     "unlockLevel": 21
   },
@@ -317,6 +336,7 @@
     "moveSpeed": "slow",
     "atkSpeed": "medium",
     "specialBehavior": "medibot",
+    "specialDesc": "Does not attack. Instead heals a damaged friendly bot every 3s.",
     "cooldown": 10,
     "unlockLevel": 22
   },
@@ -333,6 +353,7 @@
     "moveSpeed": "veryslow",
     "atkSpeed": "slow",
     "specialBehavior": null,
+    "specialDesc": null,
     "cooldown": 45,
     "unlockLevel": 24
   }

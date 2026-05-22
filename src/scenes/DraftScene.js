@@ -634,7 +634,7 @@ export default class DraftScene extends Phaser.Scene {
     const cx     = CANVAS_W / 2;
     const cy     = CANVAS_H / 2;
     const panelW = 310;
-    const panelH = 330;
+    const panelH = 360;
     const cardColor = parseInt(unit.color.slice(1), 16);
 
     const overlay = this.add.rectangle(cx, cy, CANVAS_W, CANVAS_H, 0x000000, 0.78)
@@ -665,7 +665,6 @@ export default class DraftScene extends Phaser.Scene {
       [`Metal`,        String(m)],
       [`Silicon`,      String(s)],
       [`Batteries`,    String(b)],
-      [`Special`,      unit.specialBehavior ?? '—'],
     ];
 
     const rowH  = 20;
@@ -683,6 +682,15 @@ export default class DraftScene extends Phaser.Scene {
         fontSize: '13px', color: '#ffffff', fontFamily: 'monospace', fontStyle: 'bold',
       }).setDepth(depth + 2));
     });
+
+    const specialY = startY + lines.length * rowH + 10;
+    rowObjs.push(this.add.text(lx, specialY, 'Special', {
+      fontSize: '13px', color: '#8899bb', fontFamily: 'monospace',
+    }).setDepth(depth + 2));
+    rowObjs.push(this.add.text(lx, specialY + 16, unit.specialDesc ?? '—', {
+      fontSize: '12px', color: '#ffffff', fontFamily: 'monospace',
+      wordWrap: { width: panelW - 20 },
+    }).setDepth(depth + 2));
 
     const closeBtnY = cy + panelH / 2 - 22;
     const closeBg = this.add.rectangle(cx, closeBtnY, 100, 28, 0x2a2a44)
