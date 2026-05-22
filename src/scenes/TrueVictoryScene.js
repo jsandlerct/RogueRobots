@@ -23,6 +23,8 @@ export default class TrueVictoryScene extends Phaser.Scene {
   }
 
   create() {
+    this.game.events.emit('music:victory');
+
     const cx       = CANVAS_W / 2;
     const charName = this._character?.name ?? 'Agent';
 
@@ -49,8 +51,10 @@ export default class TrueVictoryScene extends Phaser.Scene {
       onComplete: () => this._showPrompt(),
     });
 
-    this.input.keyboard.on('keydown', () => this._advance());
-    this.input.on('pointerdown',       () => this._advance());
+    this.time.delayedCall(5000, () => {
+      this.input.keyboard.on('keydown', () => this._advance());
+      this.input.on('pointerdown',       () => this._advance());
+    });
   }
 
   _showPrompt() {
@@ -70,6 +74,7 @@ export default class TrueVictoryScene extends Phaser.Scene {
     if (this._done) return;
     this._done = true;
     this.tweens.killAll();
+    this.game.events.emit('music:title');
     this.scene.start('CharacterSelectScene');
   }
 }

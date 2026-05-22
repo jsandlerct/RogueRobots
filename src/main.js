@@ -9,11 +9,12 @@ import VictoryScene from './scenes/VictoryScene.js';
 import TrueVictoryScene from './scenes/TrueVictoryScene.js';
 import DraftScene from './scenes/DraftScene.js';
 import GameScene from './scenes/GameScene.js';
+import MusicScene from './scenes/MusicScene.js';
 
 const config = {
   type: Phaser.AUTO,
   backgroundColor: CANVAS_BG,
-  scene: [IntroScene, TitleScene, CharacterSelectScene, BootScene, NarrativeScene, VictoryScene, TrueVictoryScene, DraftScene, GameScene],
+  scene: [IntroScene, TitleScene, CharacterSelectScene, BootScene, NarrativeScene, VictoryScene, TrueVictoryScene, DraftScene, GameScene, MusicScene],
   pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,

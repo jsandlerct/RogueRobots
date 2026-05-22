@@ -8,12 +8,20 @@ export default class TitleScene extends Phaser.Scene {
   }
 
   create() {
-    const img = this.add.image(CANVAS_W / 2, CANVAS_H / 2, 'titleScreen');
-    const scaleX = CANVAS_W / img.width;
-    const scaleY = CANVAS_H / img.height;
-    img.setScale(Math.min(scaleX, scaleY));
+    if (!this.scene.isActive('MusicScene')) this.scene.launch('MusicScene');
 
-    this.add.text(CANVAS_W / 2, CANVAS_H - 20, '[ Press any key or tap to play ]', {
+    const bottomReserve = 44;
+    const imgAreaH = CANVAS_H - bottomReserve;
+    const img = this.add.image(CANVAS_W / 2, imgAreaH / 2, 'titleScreen');
+    img.setScale(Math.min(CANVAS_W / img.width, imgAreaH / img.height));
+
+    this.add.text(CANVAS_W / 2, CANVAS_H - 28, 'Game Design by Jeff Sandler  ·  Art by Gemini  ·  Coding by Claude', {
+      fontFamily: INTRO_FONT,
+      fontSize: '11px',
+      color: '#888888',
+    }).setOrigin(0.5, 1);
+
+    this.add.text(CANVAS_W / 2, CANVAS_H - 10, '[ Press any key or tap to play ]', {
       fontFamily: INTRO_FONT,
       fontSize: '13px',
       color: '#cccccc',

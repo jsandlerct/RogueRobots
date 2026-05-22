@@ -13,6 +13,7 @@ import {
   DEPTH_NPC_LOADOUT_BG, DEPTH_NPC_LOADOUT_TEXT,
   DEPTH_COOLDOWN_OVERLAY, DEPTH_COOLDOWN_TEXT,
   DEPTH_ROUND_END_BG, DEPTH_ROUND_END_TEXT, DEPTH_ROUND_END_BTN, DEPTH_FEEDBACK,
+  DEPTH_COUNTDOWN,
   ROUND_END_PANEL_W, ROUND_END_PANEL_H, ROUND_END_PANEL_ALPHA,
   TOKEN_SPAWN_INTERVAL_MS, TOKEN_DROP_PROB_SMALL, TOKEN_DROP_PROB_MEDIUM,
   NPC_PURCHASE_INTERVAL_MS, NPC_FAVORITE_SPAWN_INTERVAL_MS, FEEDBACK_DURATION_MS,
@@ -98,6 +99,7 @@ export default class GameScene extends Phaser.Scene {
     this._npcCooldowns   = new Map();
     this._roundStartTime = null;
     this._roundOver      = false;
+    this._countingDown   = true;
 
     this._economy = new EconomySystem(
       this._testMode ? TESTMODE_RESOURCES : (this._startingResources ?? undefined),
@@ -128,20 +130,6 @@ export default class GameScene extends Phaser.Scene {
       this, this._pathfinding, this._mapPaths,
       (team, path) => this._onUnitSpawned(team, path)
     );
-    this._spawnSystem.start();
-
-    if (this._passive === 'superintelligence') {
-      this._deployUnit('Juggernaut', PLAYER_BASE_COL, PLAYER_BASE_ROW,
-        unitsData.find(u => u.name === 'Juggernaut'));
-    }
-
-    this.time.addEvent({
-      delay: TOKEN_SPAWN_INTERVAL_MS,
-      loop: true,
-      callback: this._spawnToken,
-      callbackScope: this,
-    });
-    this._spawnToken();
 
     this._powerupSystem = new PowerupSystem(this, {
       grid:         this._grid,
@@ -155,6 +143,34 @@ export default class GameScene extends Phaser.Scene {
       () => this._resumeFromTooltip()
     );
     this._powerupBar.refresh(this._powerupSystem.slots);
+
+    this.input.on('pointerdown', (pointer) => {
+      const inBoard =
+        pointer.x >= BOARD_OFFSET_X &&
+        pointer.x <  BOARD_OFFSET_X + BOARD_W &&
+        pointer.y >= BOARD_OFFSET_Y &&
+        pointer.y <  BOARD_OFFSET_Y + BOARD_H;
+      if (inBoard) this._onBoardClick(pointer);
+    });
+
+    this._startCountdown();
+  }
+
+  _startGameplay() {
+    if (this._passive === 'superintelligence') {
+      this._deployUnit('Juggernaut', PLAYER_BASE_COL, PLAYER_BASE_ROW,
+        unitsData.find(u => u.name === 'Juggernaut'));
+    }
+
+    this._spawnSystem.start();
+
+    this._spawnToken();
+    this.time.addEvent({
+      delay: TOKEN_SPAWN_INTERVAL_MS,
+      loop: true,
+      callback: this._spawnToken,
+      callbackScope: this,
+    });
 
     this.time.addEvent({
       delay: NPC_PURCHASE_INTERVAL_MS,
@@ -170,15 +186,74 @@ export default class GameScene extends Phaser.Scene {
       callback: this._spawnFavoriteUnit,
       callbackScope: this,
     });
+  }
 
-    this.input.on('pointerdown', (pointer) => {
-      const inBoard =
-        pointer.x >= BOARD_OFFSET_X &&
-        pointer.x <  BOARD_OFFSET_X + BOARD_W &&
-        pointer.y >= BOARD_OFFSET_Y &&
-        pointer.y <  BOARD_OFFSET_Y + BOARD_H;
-      if (inBoard) this._onBoardClick(pointer);
-    });
+  _startCountdown() {
+    this.game.events.emit('music:battle');
+
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2;
+    const steps = ['3', '2', '1', 'GO!'];
+
+    const showStep = (index) => {
+      if (index >= steps.length) {
+        this._countingDown = false;
+        this._startGameplay();
+        return;
+      }
+
+      const label = steps[index];
+      const isGo  = label === 'GO!';
+      const color = isGo ? '#00ff88' : '#ffffff';
+      const size  = isGo ? 96 : 128;
+
+      const shadow = this.add.text(cx + 4, cy + 4, label, {
+        fontSize:   `${size}px`,
+        fontFamily: 'monospace',
+        color:      '#000000',
+        alpha:      0.5,
+      }).setOrigin(0.5).setDepth(DEPTH_COUNTDOWN);
+
+      const text = this.add.text(cx, cy, label, {
+        fontSize:   `${size}px`,
+        fontFamily: 'monospace',
+        fontStyle:  'bold',
+        color,
+        stroke:     '#000000',
+        strokeThickness: 8,
+      }).setOrigin(0.5).setDepth(DEPTH_COUNTDOWN).setScale(0.4).setAlpha(0);
+
+      const holdMs  = isGo ? 400 : 600;
+      const fadeMs  = isGo ? 300 : 200;
+
+      this.tweens.add({
+        targets:  [text, shadow],
+        scaleX:   1,
+        scaleY:   1,
+        alpha:    1,
+        duration: 180,
+        ease:     'Back.Out',
+        onComplete: () => {
+          this.time.delayedCall(holdMs, () => {
+            this.tweens.add({
+              targets:  [text, shadow],
+              alpha:    0,
+              scaleX:   isGo ? 1.4 : 0.6,
+              scaleY:   isGo ? 1.4 : 0.6,
+              duration: fadeMs,
+              ease:     'Quad.In',
+              onComplete: () => {
+                text.destroy();
+                shadow.destroy();
+                showStep(index + 1);
+              },
+            });
+          });
+        },
+      });
+    };
+
+    showStep(0);
   }
 
   _pauseForTooltip() {
@@ -196,7 +271,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   update() {
-    if (this._roundOver || this._tooltipPaused) return;
+    if (this._roundOver || this._tooltipPaused || this._countingDown) return;
 
     if (this._roundStartTime === null) this._roundStartTime = this.time.now;
 
@@ -226,7 +301,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Slot selection → Base spawn or drop mode ─────────────────────────────
 
   _onSlotSelected(slotIndex, unitName) {
-    if (this._roundOver) return;
+    if (this._roundOver || this._countingDown) return;
     if (!unitName) {
       this._exitDropMode();
       return;
@@ -542,9 +617,6 @@ export default class GameScene extends Phaser.Scene {
         token.collect();
         if (team === 'player') {
           this._economy.collectToken(token.type, token.amount);
-          if (Settings.sfxOn && unit.stats?.specialBehavior === 'scavenger') {
-            this.sound.play('sfx_ding', { volume: 0.5 });
-          }
         } else if (team === 'npc') this._economy.collectNpcToken(token.type, token.amount);
         collected = true;
       }
@@ -553,6 +625,7 @@ export default class GameScene extends Phaser.Scene {
 
     if (collected && team === 'player') {
       this._refreshEconomyUI();
+      if (Settings.sfxOn) this.sound.play('sfx_ding', { volume: 0.5 });
     }
     if (collected && team === 'npc') {
       this._hud.updateNpcResources(this._economy.npcResources);
@@ -729,15 +802,20 @@ export default class GameScene extends Phaser.Scene {
   // ── Round end + Play Again ────────────────────────────────────────────────
 
   _onRoundEnd(winner) {
+    this.game.events.emit('music:title');
+
     if (winner === 'player') {
+      let needsSave = false;
       if (this._character && this._floor === SECRET_FLOOR) {
         this._character = { ...this._character, wins: (this._character.wins ?? 0) + 1 };
+        needsSave = true;
       }
       this._awardXP(XP_PER_FLOOR * this._floor);
       if (this._character && this._floor > (this._character.highestFloor ?? 1)) {
         this._character = { ...this._character, highestFloor: this._floor };
-        this._saveCharacter();
+        needsSave = true;
       }
+      if (needsSave) this._saveCharacter();
     }
 
     this._roundOver = true;
@@ -824,7 +902,7 @@ export default class GameScene extends Phaser.Scene {
   // ── Powerup activation ────────────────────────────────────────────────────
 
   _onPowerupSlotTapped(slotIndex) {
-    if (this._roundOver) return;
+    if (this._roundOver || this._countingDown) return;
     const type = this._powerupSystem.consume(slotIndex);
     if (!type) return;
     this._powerupBar.refresh(this._powerupSystem.slots);

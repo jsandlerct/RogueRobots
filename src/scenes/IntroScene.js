@@ -35,6 +35,9 @@ export default class IntroScene extends Phaser.Scene {
 
   preload() {
     this.load.image('titleScreen', 'assets/images/Rogue Robots Title Screen.png');
+    this.load.audio('music_title',   'assets/audio/Music/title and loadout.mp3');
+    this.load.audio('music_battle',  'assets/audio/Music/battle.mp3');
+    this.load.audio('music_victory', 'assets/audio/Music/victory.mp3');
   }
 
   create() {

@@ -159,7 +159,7 @@ export default class Unit {
     if (Settings.sfxOn) {
       const n = this.stats.name;
       if (n === 'Bug') {
-        this.scene.sound.play('sfx_clap',       { volume: 0.6 });
+        this.scene.sound.play('sfx_can_crunch', { volume: 0.6 });
       } else if (n === 'Wallbot' || n === 'Datamine' || n === 'Server') {
         this.scene.sound.play('sfx_metal_crash', { volume: 0.6 });
       } else if (n !== 'Spambot') {

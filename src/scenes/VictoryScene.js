@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   CANVAS_W, CANVAS_H, SECRET_FLOOR, INTRO_PULSE_MS,
 } from '../data/constants.js';
+import Settings from '../data/Settings.js';
 
 const BOARD_TAUNT =
   '"How... amusing."\n\n' +
@@ -27,6 +28,7 @@ export default class VictoryScene extends Phaser.Scene {
     this._victoryObjs = [];
     this._staticGfx   = null;
 
+    this.game.events.emit('music:victory');
     this._buildVictoryScreen();
     this.time.delayedCall(5000, () => this._startStatic());
   }
@@ -82,6 +84,9 @@ export default class VictoryScene extends Phaser.Scene {
   // ── Phase 2: Static ───────────────────────────────────────────────────────
 
   _startStatic() {
+    this.game.events.emit('music:stop');
+    if (Settings.sfxOn) this.sound.play('sfx_static', { volume: 0.7 });
+
     this.tweens.add({
       targets: this._victoryObjs, alpha: 0, duration: 300,
     });
@@ -129,6 +134,7 @@ export default class VictoryScene extends Phaser.Scene {
   }
 
   _buildBoardScreen() {
+    this.game.events.emit('music:title');
     const cx = CANVAS_W / 2;
 
     this.add.rectangle(cx, CANVAS_H / 2, CANVAS_W, CANVAS_H, 0x0a0000);
@@ -140,7 +146,7 @@ export default class VictoryScene extends Phaser.Scene {
 
     const img = this.add.image(cx, 52, 'the_board').setOrigin(0.5, 0).setAlpha(0);
     const maxW  = CANVAS_W - 60;
-    const maxH  = 170;
+    const maxH  = 255;
     const scale = Math.min(maxW / img.width, maxH / img.height);
     img.setScale(scale);
     const imgBottom = 52 + img.displayHeight;

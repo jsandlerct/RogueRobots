@@ -43,6 +43,10 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('silicon2', 'assets/images/silicon2.png');
     this.load.image('silicon3', 'assets/images/silicon3.png');
 
+    this.load.audio('sfx_can_crunch',   'assets/audio/SFX/398988__anthousai__soda-can-crunch-05.wav');
+    this.load.audio('sfx_victory',      'assets/audio/SFX/249524__pearcewilsonking__badass-victory.wav');
+    this.load.audio('sfx_fall',         'assets/audio/SFX/538151__fupicat__8bit-fall.wav');
+    this.load.audio('sfx_static',       'assets/audio/SFX/585783__pantherk__creepy-static-fade-out-into-a-low-hiss-from-microphone.wav');
     this.load.audio('sfx_clap',         'assets/audio/SFX/24786__young_daddy__clap-mix.wav');
     this.load.audio('sfx_wilhelm',      'assets/audio/SFX/813308__qubodup__wilhelm-scream.wav');
     this.load.audio('sfx_blaster_pew',  'assets/audio/SFX/819682__hotpin7__blaster-pew.wav');

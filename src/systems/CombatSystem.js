@@ -141,6 +141,28 @@ export default class CombatSystem {
           }
         }
       }
+      // Also damage the enemy base if it's within blast radius.
+      const [baseCol, baseRow] = attacker.team === 'player'
+        ? [NPC_BASE_COL, NPC_BASE_ROW] : [PLAYER_BASE_COL, PLAYER_BASE_ROW];
+      const baseX = BOARD_OFFSET_X + baseCol * TILE_SIZE + TILE_SIZE / 2;
+      const baseY = BOARD_OFFSET_Y + baseRow * TILE_SIZE + TILE_SIZE / 2;
+      const bdx   = (attacker.sprite.x - baseX) / TILE_SIZE;
+      const bdy   = (attacker.sprite.y - baseY) / TILE_SIZE;
+      if (Math.sqrt(bdx * bdx + bdy * bdy) <= BOOMBOT_AOE_RADIUS) {
+        const targetBase = attacker.team === 'player' ? 'npc' : 'player';
+        const baseDmg    = Math.max(MIN_DAMAGE, (attacker.stats.dmg - BASE_ARMOR) * dmgMult);
+        this.baseHp[targetBase] = Math.max(0, this.baseHp[targetBase] - baseDmg);
+        this._onBaseHpChanged(this.baseHp);
+        if (!this._over && this.baseHp[targetBase] <= 0) {
+          this._over = true;
+          if (Settings.sfxOn) {
+            this._scene.sound.play(
+              targetBase === 'player' ? 'sfx_fall' : 'sfx_victory', { volume: 0.8 }
+            );
+          }
+          this._onRoundEnd(targetBase === 'player' ? 'npc' : 'player');
+        }
+      }
       attacker.destroy();
       return;
     }
@@ -259,6 +281,12 @@ export default class CombatSystem {
 
     if (this.baseHp[targetBase] <= 0) {
       this._over = true;
+      if (Settings.sfxOn) {
+        this._scene.sound.play(
+          targetBase === 'player' ? 'sfx_fall' : 'sfx_victory',
+          { volume: 0.8 }
+        );
+      }
       this._onRoundEnd(targetBase === 'player' ? 'npc' : 'player');
     }
 

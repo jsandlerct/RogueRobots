@@ -120,6 +120,7 @@ export const DEPTH_ROUND_END_BG       = 20;
 export const DEPTH_ROUND_END_TEXT     = 21;
 export const DEPTH_ROUND_END_BTN      = 22;
 export const DEPTH_FEEDBACK           = 30;
+export const DEPTH_COUNTDOWN          = 40;
 export const DEPTH_DRAG_GHOST         = 55;
 
 // ── Loadout bar (player — bottom) ─────────────────────────────────────────────
