@@ -70,6 +70,10 @@ export default class GameScene extends Phaser.Scene {
     this._levelUpsThisRound = [];
     this._tooltipPaused     = false;
     this._powerupSlots      = data?.powerupSlots ?? [null, null, null];
+    if (this._floor === 1) {
+      const emptySlot = this._powerupSlots.indexOf(null);
+      if (emptySlot !== -1) this._powerupSlots[emptySlot] = 'supply';
+    }
     this._passive           = this._getActivePassive(this._character?.level ?? 0);
     this._floorConfig       = floorsData.find(f => f.floor === this._floor) ?? DEFAULT_FLOOR_CONFIG;
   }
