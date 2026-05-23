@@ -168,6 +168,7 @@ export default class GameScene extends Phaser.Scene {
 
     this._spawnSystem.start();
 
+    this._spawnStartingTokens();
     this._spawnToken();
     this.time.addEvent({
       delay: TOKEN_SPAWN_INTERVAL_MS,
@@ -543,6 +544,33 @@ export default class GameScene extends Phaser.Scene {
   }
 
   // ── Token lifecycle ───────────────────────────────────────────────────────
+
+  _spawnStartingTokens() {
+    const isWalkable = (c, r) =>
+      this._grid[r][c] === TILE_WALKABLE &&
+      !(c === NPC_BASE_COL    && r === NPC_BASE_ROW) &&
+      !(c === PLAYER_BASE_COL && r === PLAYER_BASE_ROW);
+
+    const playerSide = [];
+    const anywhere   = [];
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (!isWalkable(c, r)) continue;
+        anywhere.push({ col: c, row: r });
+        if (r >= Math.floor(ROWS / 2)) playerSide.push({ col: c, row: r });
+      }
+    }
+
+    const pick1 = Phaser.Utils.Array.GetRandom(playerSide);
+    const pick2 = Phaser.Utils.Array.GetRandom(
+      anywhere.filter(t => !(t.col === pick1.col && t.row === pick1.row))
+    );
+
+    const types = Phaser.Utils.Array.Shuffle(['silicon', 'battery']);
+    this._tokens.push(new ResourceToken(this, pick1.col, pick1.row, types[0], 1));
+    this._tokens.push(new ResourceToken(this, pick2.col, pick2.row, types[1], 1));
+    this._wakeIdleScavengers();
+  }
 
   _spawnToken() {
     if (this._roundOver) return;
